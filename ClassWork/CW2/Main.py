@@ -47,7 +47,9 @@ def ex6():
     text = 'Hello Hello We Do Hi no No no we Donot Hey HE he heY'
     wordCounts = countMyWords(text)
     print("Text: " + text)
-    print(wordCounts)
+    print("{:<20} {}".format('Word', 'Occurrences'))
+    for myKey, myLabel in wordCounts.items():
+        print("{:<20} {}".format(myKey, myLabel))
     print()
 
 

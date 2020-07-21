@@ -1,21 +1,26 @@
+import numbers
 import os
 import sys
-
-
-# Assignment 1
 import numpy
 
 
+# Assignment 1
 def myList2Text(lst):
+    if lst.__class__ != [].__class__:
+        return None
+
     return ''.join(str(item) for item in lst)
 
 
 # Assignment 2
 def isNumeric(x):
-    return type(x) in [int, float]
+    return isinstance(x, numbers.Number)
 
 
 def myListMean(lst):
+    if lst.__class__ != [].__class__:
+        return None
+
     count = 0
     summ = 0
 
@@ -42,17 +47,31 @@ def myListMean(lst):
 
 # Assignment 3
 def list_files(dirr=os.getcwd()):
+    if not os.path.exists(dirr):
+        print("Directory {} does not exist".format(dirr))
+        return None
+
+    if not os.path.isdir(dirr):
+        print("{} is not a directory".format(dirr))
+        return None
+
     files = [f for f in os.listdir(dirr) if os.path.isfile(os.path.join(dirr, f))]
     return files
 
 
 # Assignment 4
 def create_3darray(shape):
+    if shape.__class__ != ().__class__:
+        return None
+
     return numpy.zeros(shape)
 
 
 # Assignment 5
 def myRot13(text):
+    if text.__class__ != "".__class__:
+        return None
+
     if not hasattr(myRot13, 'alphabet'):
         myRot13.alphabet = {'a': 'n', 'b': 'o', 'c': 'p', 'd': 'q', 'e': 'r', 'f': 's', 'g': 't', 'h': 'u',
                             'i': 'v', 'j': 'w', 'k': 'x', 'l': 'y', 'm': 'z', 'n': 'a', 'o': 'b', 'p': 'c',
@@ -80,10 +99,14 @@ def myRot13(text):
 
 # Assignment 6
 def countMyWords(text):
+    if text.__class__ != "".__class__:
+        return None
+
     wordCounts = {}
-    words = str(text).split(' ')
+    words = str(text).split()
     for word in [i.lower() for i in words]:
         wordCounts[word] = 1 if word not in wordCounts else wordCounts[word] + 1
+
     return wordCounts
 
 
