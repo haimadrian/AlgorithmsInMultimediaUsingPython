@@ -31,7 +31,7 @@ def isNumeric(x):
     import re
 
     # Store a compiled regex onto the function so we will not have to recompile it over and over
-    if not hasattr(myMean, 'isNumeric'):
+    if not hasattr(isNumeric, 'numericRegex'):
         isNumeric.numericRegex = re.compile(r"^([+-]?\d*)\.?\d*$")
     return len(str(x).strip()) > 0 and isNumeric.numericRegex.match(str(x).strip()) is not None
 
