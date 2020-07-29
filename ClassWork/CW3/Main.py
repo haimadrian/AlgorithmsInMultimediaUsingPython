@@ -72,7 +72,7 @@ def ex9():
 
 def ex10():
     print("ex10: (myZeroPadding)")
-    img = myZeroPadding(cv2.imread('img1.jpg'), 50)
+    img = myZeroPadding2(cv2.imread('img1.jpg'), 50)
     cv2.imshow('myZeroPadding', img)
     cv2.waitKey()
     print()
@@ -80,7 +80,7 @@ def ex10():
 
 def ex11():
     print("ex11: (myExtendedPadding)")
-    img = myExtendedPadding(cv2.imread('img1.jpg'), 50)
+    img = myExtendedPadding2(cv2.imread('img1.jpg'), 50)
     cv2.imshow('myExtendedPadding', img)
     cv2.waitKey()
     print()

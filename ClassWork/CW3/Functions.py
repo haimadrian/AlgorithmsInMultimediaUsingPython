@@ -186,11 +186,11 @@ def drawGrayscale(imgName='img1.jpg'):
     imageMinus = img.copy()
     imagePlus = img.copy()
 
-    # Convert to float64 so we will be able to have negative values, below uint8
-    imageMinus = np.float64(imageMinus) - 50
+    # Convert to int64 so we will be able to have negative values, below and above uint8
+    imageMinus = np.int64(imageMinus) - 50
     imageMinus[imageMinus < 0] = 0
     imageMinus = np.uint8(imageMinus)
-    imagePlus = np.float64(imagePlus) + 50
+    imagePlus = np.int64(imagePlus) + 50
     imagePlus[imagePlus > 255] = 255
     imagePlus = np.uint8(imagePlus)
 
@@ -223,6 +223,22 @@ def myZeroPadding(img, padSize):
     return cv2.copyMakeBorder(img, padSize, padSize, padSize, padSize, cv2.BORDER_CONSTANT, value=[0, 0, 0])
 
 
+def myZeroPadding2D(mat, padSize):
+    dim = mat.shape
+    ex = np.zeros((dim[0] + (padSize * 2), dim[1] + (padSize * 2)))
+    ex[padSize:padSize + dim[0], padSize:padSize + dim[1]] = mat
+    return np.uint8(ex)
+
+
+def myZeroPadding2(img, padSize):
+    img = validateImage(img)
+    if img is None or not isinstance(padSize, int) or padSize < 1:
+        return img
+
+    b, g, r = cv2.split(img)
+    return cv2.merge((myZeroPadding2D(b, padSize), myZeroPadding2D(g, padSize), myZeroPadding2D(r, padSize)))
+
+
 # Assignment 11
 def myExtendedPadding(img, padSize):
     if not isinstance(img, np.ndarray) or not isinstance(padSize, int):
@@ -232,24 +248,56 @@ def myExtendedPadding(img, padSize):
     return cv2.copyMakeBorder(img, padSize, padSize, padSize, padSize, cv2.BORDER_REPLICATE)
 
 
+def myExtendedPadding2D(mat, padSize):
+    ex = myZeroPadding2D(mat, padSize)
+    exDim = ex.shape
+    matDim = mat.shape
+
+    # First we fill the top and bottom parts, leaving the left and right top corners black (zero)
+    # Second, we depend on the size and top and bottom padding in order to fill the whole left and right
+    # parts, including the corners.
+
+    # top
+    ex[:padSize, padSize:padSize + matDim[1]] = mat[0]
+
+    # bottom
+    ex[padSize + matDim[0]:, padSize:padSize + matDim[1]] = mat[matDim[0] - 1]
+
+    # Use tile to duplicate the column at padSize, padSize times, and then transpose it because the column
+    # was duplicated into several rows, but we want to use it for filling in the columns.
+    # left
+    ex[:, :padSize] = np.tile(ex[:, padSize], (padSize, 1)).transpose()
+
+    # right
+    ex[:, padSize + matDim[1]:] = np.tile(ex[:, exDim[1] - padSize - 1], (padSize, 1)).transpose()
+    return np.uint8(ex)
+
+
+def myExtendedPadding2(img, padSize):
+    img = validateImage(img)
+    if img is None or not isinstance(padSize, int) or padSize < 1:
+        return img
+
+    b, g, r = cv2.split(img)
+    return cv2.merge((myExtendedPadding2D(b, padSize), myExtendedPadding2D(g, padSize), myExtendedPadding2D(r, padSize)))
+
+
 # Assignment 12
+def gradientEdgeDetector(img):
+    # img is a 2D array, so the result of gradient is two arrays ordered by axis
+    dy, dx = np.gradient(np.float64(img))
+
+    newImg = (dy ** 2 + dx ** 2) ** 0.5
+    newImg = newImg - np.min(newImg)
+    newImg = np.round(newImg * 255 / np.max(newImg))
+
+    return np.uint8(newImg)
+
+
 def fuck(img):
     img = validateImage(img)
     if img is None:
         return None
 
-    def GradientEdgeDetector(myImage):
-        dy, dx = np.gradient(np.float64(myImage))
-
-        newImg = (dy ** 2 + dx ** 2) ** 0.5
-        newImg = newImg - np.min(newImg)
-        newImg = np.round(newImg * 255 / np.max(newImg))
-
-        return np.uint8(newImg)
-
     b, g, r = cv2.split(img)
-    Pb = GradientEdgeDetector(b)
-    Pg = GradientEdgeDetector(g)
-    Pr = GradientEdgeDetector(r)
-
-    return cv2.merge((Pb, Pg, Pr))
+    return cv2.merge((gradientEdgeDetector(b), gradientEdgeDetector(g), gradientEdgeDetector(r)))
