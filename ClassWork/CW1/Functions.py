@@ -1,3 +1,5 @@
+__author__ = "Haim Adrian"
+
 from random import randrange
 
 

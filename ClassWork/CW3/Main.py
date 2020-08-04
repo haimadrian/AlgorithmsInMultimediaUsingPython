@@ -1,3 +1,5 @@
+__author__ = "Haim Adrian"
+
 import matplotlib
 
 # Do it to see a new window when calling plt.show, and not within PyCharm.

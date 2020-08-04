@@ -1,3 +1,5 @@
+__author__ = "Haim Adrian"
+
 import numbers
 import os
 import sys
