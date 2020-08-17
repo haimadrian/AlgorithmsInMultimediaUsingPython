@@ -28,9 +28,11 @@ def ex1Test():
 
 def ex1():
     img = cv2.imread("Cat.jpg")
+    # Mask sum is 1, then we will need to normalize, round and cast.
     gaussianMask = (1 / 16) * np.array([[1, 2, 1],
                                         [2, 4, 2],
                                         [1, 2, 1]])
+    # Mask sum is 0, then we will need to use absolute before normalizing the image
     laplacianMask = np.array([[0, -1, 0],
                               [-1, 4, -1],
                               [0, -1, 0]])
@@ -75,9 +77,10 @@ def ex3():
 
 
 def ex4():
+    # Median filter sum is either 0 or 1, so we will need to use absolute, round and cast (normalizing image)
     img, medianFiltered = medianFilter()
     img = normalizeImage(img[:, :, ::-1])
-    medianFiltered = normalizeImage(medianFiltered[:, :, ::-1])
+    medianFiltered = normalizeImage(np.abs(medianFiltered[:, :, ::-1]))
 
     plt.figure('EX4 - Median and Gaussian')
     plt.subplot(221)

@@ -14,13 +14,13 @@ def normalizeImage(img):
 
 def myMasking(img, mask):
     if not isinstance(img, np.ndarray) or not isinstance(mask, np.ndarray):
-        print("Not ndarray")
+        print("myMasking: Not a tensor. Was: Image=", img.__class__, ", Mask=", mask.__class__)
         return None
 
     maskShape = mask.shape
     imgShape = img.shape
     if (len(maskShape) != 2) or (maskShape[0] != maskShape[1]) or (maskShape[0] % 2 == 0):
-        print("Mask is not supported. Only two square odd dimensional masks. e.g. 3x3 or 5x5")
+        print("myMasking: Mask is not supported. Only two square odd dimensional masks. e.g. 3x3 or 5x5")
         return None
 
     def myMaskingInner(img2D, msk):
@@ -29,17 +29,17 @@ def myMasking(img, mask):
 
         # Extended padding
         padded = cv2.copyMakeBorder(img2D, mid, mid, mid, mid, cv2.BORDER_REPLICATE)
-        result = np.float64(np.zeros(img2D.shape))
+        result = np.zeros(img2D.shape, dtype=np.float64)
 
         # Now apply the mask
         for i in range(mid, padded.shape[0] - mid):
             for j in range(mid, padded.shape[1] - mid):
-                result[i-mid, j-mid] = np.sum(padded[i-mid:i+mid+1, j-mid:j+mid+1] * msk)
+                result[i - mid, j - mid] = np.sum(padded[i - mid:i + mid + 1, j - mid:j + mid + 1] * msk)
 
         return result
 
     if len(imgShape) > 3 or len(imgShape) < 2:
-        print("Illegal image dimension. Length of shape can be 2 or 3 only")
+        print("myMasking: Illegal image dimension. Length of shape can be 2 or 3 only")
         return None
 
     if len(imgShape) == 2:
@@ -110,6 +110,7 @@ def myHistPlot(img1, img2):
 def medianFilter():
     img = cv2.imread("NoisyS.pgm")
 
+    # Median is either 0 or 1, so we will need to use absolute, round and cast (normalizing image)
     def medianFilterInner(img2D):
         windowSize = 10 * 2 + 1
 
@@ -118,7 +119,7 @@ def medianFilter():
 
         # Zero padding
         padded = cv2.copyMakeBorder(img2D, mid, mid, mid, mid, cv2.BORDER_CONSTANT, value=0)
-        result = np.float64(np.zeros(img2D.shape))
+        result = np.zeros(img2D.shape, dtype=float)
 
         # Now apply the filter
         fullWindowLength = windowSize**2
@@ -134,6 +135,7 @@ def medianFilter():
     medianG = medianFilterInner(g)
     medianR = medianFilterInner(r)
 
+    # Mask sum is 1, we will need to normalize, round and cast
     gaussianMask = (1 / 273) * np.array([[1, 4, 7, 4, 1],
                                          [4, 16, 26, 16, 4],
                                          [7, 26, 41, 26, 7],
@@ -141,19 +143,3 @@ def medianFilter():
                                          [1, 4, 7, 4, 1]])
 
     return img, cv2.merge((myMasking(medianB, gaussianMask), myMasking(medianG, gaussianMask), myMasking(medianR, gaussianMask)))
-
-
-# Assignment 5
-def drawRedDiagonalLine(img):
-    if img is None:
-        return None
-    dim = img.shape
-
-    x1, y1 = 0, 0
-    x2, y2 = dim[1], dim[0]
-    image = img.copy()
-
-    line_thickness = 2
-    cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), thickness=line_thickness)
-
-    return image
