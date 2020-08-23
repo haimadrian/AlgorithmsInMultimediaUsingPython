@@ -180,8 +180,8 @@ def myDoubleThreshold(intensityGradient, minThresh=0.25, maxThresh=0.5):
 
         # strongRows, strongCols = np.where(intensityGradient > maxThresh)
         # weakRows, weakCols = np.where((intensityGradient >= minThresh) & (intensityGradient <= maxThresh))
-        result[np.logical_and(intensityGradient >= minThresh, intensityGradient <= maxThresh)] = weak
-        result[intensityGradient > maxThresh] = strong
+        result[np.logical_and(intensityGradient >= minThresh, intensityGradient < maxThresh)] = weak
+        result[intensityGradient >= maxThresh] = strong
         return result
     elif len(intensityGradient.shape) == 3:
         b, g, r = cv2.split(intensityGradient)

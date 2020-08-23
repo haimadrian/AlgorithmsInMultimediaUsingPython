@@ -1,7 +1,5 @@
 __author__ = "Haim Adrian"
 
-import sys
-
 import matplotlib
 from myCannyLogic import *
 
@@ -20,7 +18,7 @@ def cannyEdgeDetector(img):
     gradientX, gradientY = myGradient(blur)
     intensityGradient, phase = myPhase(gradientX, gradientY)
     nonMaxSuppress = myNonMaximumSuppression(intensityGradient, phase)
-    doubleThresh, strong, weak = myDoubleThreshold(nonMaxSuppress, 0.07, 0.5)  # Play with the min/max to see more/less edges
+    doubleThresh, strong, weak = myDoubleThreshold(nonMaxSuppress, 0.1, 0.5)  # Play with the min/max to see more/less edges
     result = myHysteresis(doubleThresh, strong, weak)
 
     return result
