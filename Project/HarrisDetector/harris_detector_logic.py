@@ -2,17 +2,24 @@ __author__ = "Haim Adrian"
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 
-def find_harris_corners(image, k, window_size, threshold):
+def log(consumer, *message):
+    text = ' '.join(message)
+    if consumer is not None:
+        consumer(text)
+
+    print(text)
+
+
+def find_harris_corners(image, k, window_size, threshold, console_consumer=None):
     if not isinstance(image, np.ndarray):
-        print("find_harris_corners: Not a tensor. Was: Image=", image.__class__)
+        log(console_consumer, "find_harris_corners: Not a tensor. Was: Image=", image.__class__)
         return None
 
     corner_list = []
     output_img = image.copy()
-    gaussian_img = cv2.GaussianBlur(output_img, (5, 5), 3)
+    gaussian_img = cv2.GaussianBlur(output_img, (5, 5), 0)
 
     offset = int(window_size / 2)
     x_range = gaussian_img.shape[0] - offset
@@ -61,25 +68,3 @@ def find_harris_corners(image, k, window_size, threshold):
                 cv2.circle(output_img, center, radius, color)
 
     return corner_list, output_img
-
-
-def plot(title, img, location):
-    """
-    This method created in order to wrap a sub plotting with tight layout
-
-    Parameters
-    ----------
-    title : str or None
-        The legend’s title. Default is no title (None).
-    img : array_like, shape (n, m) or (n, m, 3) or (n, m, 4)
-        The image to display
-    location : int
-        Represents the amount of rows, amount of columns and the plot number in the grid
-    """
-    plt.subplot(location)
-    plt.tight_layout(pad=2.0)
-    plt.imshow(np.uint8(img[:, :, ::-1]))
-    plt.title(title)
-    plt.axis('off')
-    plt.xticks([])
-    plt.yticks([])
