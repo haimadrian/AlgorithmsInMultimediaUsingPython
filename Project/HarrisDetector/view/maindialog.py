@@ -5,6 +5,7 @@ import tkinter.filedialog as tkfiledialog
 import os
 import view.controls as ctl
 import numpy as np
+from matplotlib import pyplot as plt
 from threading import Thread
 from tkinter.ttk import Style
 from tkinter import messagebox
@@ -32,9 +33,15 @@ class MainDialog(tk.Frame):
         self.__progress_bar = None  # tk.Progressbar
         self.__go_button = None  # tk.Button
         self.__open_file_button = None  # tk.Button
-        self.__canny_check_var = None  # tk.IntVar  - to hold the value of the checkbox
+        self.__popup_image_button = None  # tk.Button
+        self.__canny_check_var = None  # tk.IntVar  - to hold the value of the canny edge checkbox
         self.__canny_checkbutton = None  # tk.Checkbutton
+        self.__gauss_check_var = None  # tk.IntVar  - to hold the value of the gaussian checkbox
+        self.__gauss_checkbutton = None  # tk.Checkbutton
+        self.__rect_mark_check_var = None  # tk.IntVar  - to hold the value of the rect_mark checkbox
+        self.__rect_mark_checkbutton = None  # tk.Checkbutton
         self.__file_path_entry = None  # tk.Entry
+        self.__dilate_size_spinbox = None  # tk.Spinbox
         self.__magnifying_icon = None  # tk.PhotoImage
         self.__figure = None  # A reference to pyplot figure, so we can destroy it when there is a new input
         self.__style = None  # tk.ttk.Style
@@ -92,13 +99,20 @@ class MainDialog(tk.Frame):
 
         # Get a second line in the actions area, so the checkbox will be under the entry
         helper_frame = ctl.create_frame(master, tk.X)
-        self.__canny_check_var = tk.IntVar()
-        self.__canny_checkbutton = tk.Checkbutton(helper_frame, text='Go through Canny Edge Detection', padx=5, pady=5,
-                                                  background=ctl.BACKGROUND_COLOR, foreground=ctl.FOREGROUND_EDITOR_COLOR,
-                                                  activebackground=ctl.BACKGROUND_COLOR, activeforeground=ctl.FOREGROUND_EDITOR_COLOR,
-                                                  font=('Calibri', 12), selectcolor=ctl.BACKGROUND_EDITOR_COLOR,
-                                                  variable=self.__canny_check_var)
-        self.__canny_checkbutton.pack(side=tk.LEFT)
+        self.__canny_checkbutton, self.__canny_check_var = ctl.create_checkbutton(helper_frame, 'Go through Canny Edge Detection', tk.LEFT)
+        self.__gauss_checkbutton, self.__gauss_check_var = ctl.create_checkbutton(helper_frame, 'Apply Gaussian Blur', tk.LEFT)
+        self.__rect_mark_checkbutton, self.__rect_mark_check_var = ctl.create_checkbutton(helper_frame, 'Rectangle mark   Size:', tk.LEFT)
+        self.__rect_mark_checkbutton.select()
+        self.__gauss_checkbutton.select()
+        self.__dilate_size_spinbox = ctl.create_spinbox(helper_frame, (1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50), tk.LEFT, 5)
+        self.__dilate_size_spinbox.pack(side=tk.LEFT)
+        self.__dilate_size_spinbox.delete(0, 'end')
+        self.__dilate_size_spinbox.insert(0, '20')
+
+        self.__popup_image_button = tk.ttk.Button(master=helper_frame, text='Popup Image', command=self.popup_image, style='TButton')
+        ctl.create_pad(helper_frame, tk.RIGHT)
+        self.__popup_image_button.pack(side=tk.RIGHT)
+        self.__popup_image_button['state'] = 'disabled'
 
     def create_status_section(self, master):
         """
@@ -183,6 +197,11 @@ class MainDialog(tk.Frame):
         self.__go_button['state'] = new_state
         self.__open_file_button['state'] = new_state
         self.__file_path_entry['state'] = new_state
+        self.__canny_checkbutton['state'] = new_state
+        self.__gauss_checkbutton['state'] = new_state
+        self.__rect_mark_checkbutton['state'] = new_state
+        self.__dilate_size_spinbox['state'] = new_state
+        self.__popup_image_button['state'] = new_state
 
     def open_file_action(self):
         """
@@ -227,7 +246,10 @@ class MainDialog(tk.Frame):
         """
         self.__image, self.__processed_image = corners_and_line_intersection_detector(path,
                                                                                       lambda text: self.update_status(text),
-                                                                                      bool(self.__canny_check_var.get()))
+                                                                                      bool(self.__canny_check_var.get()),
+                                                                                      bool(self.__gauss_check_var.get()),
+                                                                                      bool(self.__rect_mark_check_var.get()),
+                                                                                      int(self.__dilate_size_spinbox.get()))
         if self.__image is None or self.__processed_image is None:
             self.__error = True
 
@@ -244,7 +266,6 @@ class MainDialog(tk.Frame):
         axes = self.__figure.add_subplot(122)
         axes.imshow(np.uint8(processed_image[:, :, ::-1]))
         self.__figure.subplots_adjust(0.05, 0.2, 0.95, 0.9, 0.2, 0.2)
-        # figure.tight_layout(pad=1.0)
         canvas = FigureCanvasTkAgg(self.__figure, self.__figure_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
@@ -271,3 +292,15 @@ class MainDialog(tk.Frame):
 
         if self.__running:
             self.master.after(200, self.periodically_check_outcome)
+
+    def popup_image(self):
+        """
+        Action corresponding to when user presses the popup button, to plot the outcome outside the main window
+        :return: None
+        """
+        if self.__processed_image is not None:
+            plt.figure('Corners Detector')
+            plt.tight_layout(pad=0.5)
+            plt.imshow(np.uint8(self.__processed_image[:, :, ::-1]))
+            plt.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0.1, 0.1)
+            plt.show()

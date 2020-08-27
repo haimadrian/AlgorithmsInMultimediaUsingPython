@@ -22,7 +22,7 @@ def create_pad(master, side):
 
 def create_frame(master, fill):
     """
-    A utility method used for creating frame under a specified master at specified side, with dark background
+    A utility method used for creating frame under a specified master using specified fill, with dark background
     :param master: Owner of the created frame
     :param fill: How the frame should fill its container. e.g. X, Y, BOTH
     :return: The created frame
@@ -30,6 +30,39 @@ def create_frame(master, fill):
     frame = tk.Frame(master=master, background=BACKGROUND_COLOR)
     frame.pack(fill=fill)
     return frame
+
+
+def create_checkbutton(master, text, side):
+    """
+    A utility method used for creating checkbutton under a specified master at specified side, with dark background
+    :param master: Owner of the created checkbutton
+    :param text: The text to set to the checkbutton
+    :param side: Where the checkbutton should be
+    :return: The created check button, followed by its IntVar
+    """
+    check_var = tk.IntVar()
+    checkbutton = tk.Checkbutton(master, text=text, padx=5, pady=5,
+                                 background=BACKGROUND_COLOR, foreground=FOREGROUND_EDITOR_COLOR,
+                                 activebackground=BACKGROUND_COLOR, activeforeground=FOREGROUND_EDITOR_COLOR,
+                                 font=('Calibri', 12), selectcolor=BACKGROUND_EDITOR_COLOR, variable=check_var)
+    checkbutton.pack(side=side)
+    return checkbutton, check_var
+
+
+def create_spinbox(master, values, side, width):
+    """
+    A utility method used for creating spinbox under a specified master at specified side, with dark background
+    :param master: Owner of the created checkbutton
+    :param values: A tuple containing valid values for this widget
+    :param side: Where the spinbox should be
+    :param width: The width of the spinbox
+    :return: The created check button, followed by its IntVar
+    """
+    spinbox = tk.Spinbox(master=master, width=width, values=values, font=('Calibri', 12),
+                         selectbackground=BACKGROUND_EDITOR_COLOR, selectforeground=FOREGROUND_EDITOR_COLOR,
+                         background=BACKGROUND_EDITOR_COLOR, foreground=FOREGROUND_EDITOR_COLOR)
+    spinbox.pack(side=side)
+    return spinbox
 
 
 def center(window):
