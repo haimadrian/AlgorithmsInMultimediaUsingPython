@@ -41,21 +41,20 @@ def corners_and_line_intersection_detector(image_path, console_consumer=None, is
 
         if harris_scores is None:
             log(console_consumer, 'Error has occurred while detecting corners. Result was None')
+            image = None
         else:
             success = True
+            image = img.copy()
+            if image.ndim == 2:
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
-        # Threshold for an optimal value, it may vary depending on the image.
-        image = img.copy()
-        if image.ndim == 2:
-            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
-        # Mark the corners
-        if is_using_rect:
-            mark_corners_with_rect(image, harris_scores, dilate_size)
-        else:
-            # Mark with dots
-            harris_scores = cv2.dilate(harris_scores, None)
-            image[harris_scores > 0.01 * harris_scores.max()] = (0, 255, 0)
+            # Mark the corners
+            if is_using_rect:
+                mark_corners_with_rect(image, harris_scores, dilate_size)
+            else:
+                # Mark with dots
+                harris_scores = cv2.dilate(harris_scores, None)
+                image[harris_scores > 0.01 * harris_scores.max()] = (0, 255, 0)
 
     time_took = timer() - start
     log(console_consumer, 'Corners detection ended in %.2f seconds. Result:' % time_took, 'Success' if success else 'Fail')
@@ -86,15 +85,17 @@ def mark_corners_with_rect(image, harris_scores, dilate_size):
     :return: None
     """
     helper_image = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
-    helper_image[harris_scores > 0.01 * harris_scores.max()] = 255
 
+    # Threshold for an optimal value, it may vary depending on the image.
+    helper_image[harris_scores > 0.01 * harris_scores.max()] = 255
     cv2.threshold(helper_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU, helper_image)
 
-    # Make the pixels (marking the corners) thicker
+    # Make the pixels thicker (marking the corners)
     kernel_size = dilate_size
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     helper_image = cv2.dilate(helper_image, kernel, iterations=1)
 
+    # Find all contours so we can make rectangles out of them
     contours, hierarchy = cv2.findContours(helper_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for c in contours:
         # Get the bounding rect
