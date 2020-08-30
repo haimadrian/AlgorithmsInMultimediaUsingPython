@@ -1,6 +1,7 @@
 __author__ = "Haim Adrian"
 
 import tkinter as tk
+import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import os
 import view.controls as ctl
@@ -10,6 +11,9 @@ from threading import Thread
 from tkinter.ttk import Style
 from tkinter import messagebox
 from harris_detector import corners_and_line_intersection_detector
+from view.settingsdialog import SettingsDialog
+from view.tooltip import Tooltip
+from util.settings import Settings
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
@@ -24,6 +28,7 @@ class MainDialog(tk.Frame):
 
         # Declare all of the instance attributes here, and initialize them in separate methods for code separation
         # Keep them as attributes so we will not have issues with garbage collection. Especially with the PhotoImage
+        self.settings = Settings().load()
         self.__title_frame = None  # tk.Frame
         self.__action_frame = None  # tk.Frame
         self.__status_frame = None  # tk.Frame
@@ -31,18 +36,24 @@ class MainDialog(tk.Frame):
         self.__title = None  # tk.Label
         self.__status_bar = None  # tk.Label
         self.__progress_bar = None  # tk.Progressbar
+        self.__settings_button = None  # tk.Button
         self.__go_button = None  # tk.Button
         self.__open_file_button = None  # tk.Button
         self.__popup_image_button = None  # tk.Button
+        self.__settings_button_tooltip = None  # view.tooltip.Tooltip
+        self.__go_button_tooltip = None  # view.tooltip.Tooltip
+        self.__open_file_button_tooltip = None  # view.tooltip.Tooltip
+        self.__popup_image_button_tooltip = None  # view.tooltip.Tooltip
+        self.__file_path_entry_tooltip = None  # view.tooltip.Tooltip
         self.__canny_check_var = None  # tk.IntVar  - to hold the value of the canny edge checkbox
         self.__canny_checkbutton = None  # tk.Checkbutton
         self.__gauss_check_var = None  # tk.IntVar  - to hold the value of the gaussian checkbox
         self.__gauss_checkbutton = None  # tk.Checkbutton
-        self.__rect_mark_check_var = None  # tk.IntVar  - to hold the value of the rect_mark checkbox
-        self.__rect_mark_checkbutton = None  # tk.Checkbutton
         self.__file_path_entry = None  # tk.Entry
-        self.__dilate_size_spinbox = None  # tk.Spinbox
         self.__magnifying_icon = None  # tk.PhotoImage
+        self.__play_icon = None  # tk.PhotoImage
+        self.__popout_icon = None  # tk.PhotoImage
+        self.__settings_icon = None  # tk.PhotoImage
         self.__figure = None  # A reference to pyplot figure, so we can destroy it when there is a new input
         self.__style = None  # tk.ttk.Style
         self.__running = False  # Indication of when we wait for the Harris Detector worker to finish
@@ -51,8 +62,13 @@ class MainDialog(tk.Frame):
         self.__error = False  # Indication for a failure during Harris Detector algorithm
 
         self.__style = Style(master)
-        self.__style.configure('TButton', font=('Calibri', 14, 'bold'), borderwidth='1', foreground='green', background='#3592C4')
-        self.__style.map('TButton', foreground=[('active', '!disabled', 'green')], background=[('active', 'green')])
+        self.__style.theme_use('clam')
+        self.__style.configure("Horizontal.TProgressbar", foreground='#E0E0E0', background=ctl.ACCEPT_COLOR,
+                               troughcolor=ctl.BACKGROUND_TOOLTIP_COLOR, bordercolor=ctl.ACCEPT_COLOR,
+                               lightcolor=ctl.ACCEPT_COLOR, darkcolor=ctl.ACCEPT_COLOR)
+        self.__style.configure('TButton', font=ctl.FONT_BUTTON, borderwidth='1', background=ctl.BACKGROUND_COLOR, relief='FLAT')
+        self.__style.configure('TLabel', font=ctl.FONT_REGULAR)
+        self.__style.map('TButton', background=[('active', '!disabled', '#4E6067')])
 
         self.create_title_section(master)
         self.create_action_section(master)
@@ -69,8 +85,14 @@ class MainDialog(tk.Frame):
         :return: None
         """
         self.__title_frame = ctl.create_frame(master, tk.X)
-        self.__title = tk.Label(master=self.__title_frame, text='Corners Detector', font=('Calibri', 22, 'bold'),
-                                background=ctl.BACKGROUND_COLOR, foreground=ctl.FOREGROUND_COLOR)
+        self.__title = ctl.create_title(self.__title_frame, 'Corners Detector')
+        self.__settings_icon = tk.PhotoImage(file=os.path.abspath(os.path.join('resource', 'settings-icon.png')))
+        self.__settings_button = ttk.Button(master=self.__title_frame, image=self.__settings_icon, command=self.show_settings_dialog,
+                                            style='TButton')
+        self.__settings_button_tooltip = Tooltip(self.__settings_button, 'Settings')
+
+        # First display the button and only then the label, so they will sit in one row
+        self.__settings_button.pack(side=tk.RIGHT)
         self.__title.pack(fill=tk.X)
 
     def create_action_section(self, master):
@@ -83,34 +105,31 @@ class MainDialog(tk.Frame):
         """
         self.__action_frame = ctl.create_frame(master, tk.X)
         self.__magnifying_icon = tk.PhotoImage(file=os.path.abspath(os.path.join('resource', 'magnifying-icon.png')))
-        ctl.create_pad(self.__action_frame, tk.LEFT)
-        self.__file_path_entry = tk.Entry(master=self.__action_frame,
-                                          background=ctl.BACKGROUND_EDITOR_COLOR, foreground=ctl.FOREGROUND_EDITOR_COLOR)
+        self.__file_path_entry = ctl.create_entry(self.__action_frame)
         self.__file_path_entry.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+        self.__file_path_entry_tooltip = Tooltip(self.__file_path_entry, 'Click the magnifying icon in order to open an image')
 
-        self.__open_file_button = tk.ttk.Button(master=self.__action_frame, image=self.__magnifying_icon,
-                                                command=self.open_file_action, style='TButton', width=4)
+        self.__open_file_button = ttk.Button(master=self.__action_frame, image=self.__magnifying_icon,
+                                             command=self.open_file_action, style='TButton', width=4)
         self.__open_file_button.pack(side=tk.LEFT)
+        self.__open_file_button_tooltip = Tooltip(self.__open_file_button, 'Open image')
         ctl.create_pad(self.__action_frame, tk.LEFT)
 
-        self.__go_button = tk.ttk.Button(master=self.__action_frame, text='Go!', command=self.on_enter_pressed, style='TButton', width=5)
-        ctl.create_pad(self.__action_frame, tk.RIGHT)
+        self.__play_icon = tk.PhotoImage(file=os.path.abspath(os.path.join('resource', 'play-icon.png')))
+        self.__go_button = ttk.Button(master=self.__action_frame, image=self.__play_icon,
+                                      command=self.on_enter_pressed, style='TButton', width=4)
+        self.__go_button_tooltip = Tooltip(self.__go_button, 'Execute corners detection')
         self.__go_button.pack(side=tk.RIGHT)
 
         # Get a second line in the actions area, so the checkbox will be under the entry
         helper_frame = ctl.create_frame(master, tk.X)
         self.__canny_checkbutton, self.__canny_check_var = ctl.create_checkbutton(helper_frame, 'Go through Canny Edge Detection', tk.LEFT)
         self.__gauss_checkbutton, self.__gauss_check_var = ctl.create_checkbutton(helper_frame, 'Apply Gaussian Blur', tk.LEFT)
-        self.__rect_mark_checkbutton, self.__rect_mark_check_var = ctl.create_checkbutton(helper_frame, 'Rectangle mark   Size:', tk.LEFT)
-        self.__rect_mark_checkbutton.select()
         self.__gauss_checkbutton.select()
-        self.__dilate_size_spinbox = ctl.create_spinbox(helper_frame, (1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50), tk.LEFT, 5)
-        self.__dilate_size_spinbox.pack(side=tk.LEFT)
-        self.__dilate_size_spinbox.delete(0, 'end')
-        self.__dilate_size_spinbox.insert(0, '20')
 
-        self.__popup_image_button = tk.ttk.Button(master=helper_frame, text='Popup Image', command=self.popup_image, style='TButton')
-        ctl.create_pad(helper_frame, tk.RIGHT)
+        self.__popout_icon = tk.PhotoImage(file=os.path.abspath(os.path.join('resource', 'pop-out-icon.png')))
+        self.__popup_image_button = ttk.Button(master=helper_frame, image=self.__popout_icon, command=self.popup_image, style='TButton')
+        self.__popup_image_button_tooltip = Tooltip(self.__popup_image_button, 'Pops out the image with marks as a pyplot dialog')
         self.__popup_image_button.pack(side=tk.RIGHT)
         self.__popup_image_button['state'] = 'disabled'
 
@@ -122,17 +141,18 @@ class MainDialog(tk.Frame):
         :param master: Master dialog to add the frame to
         :return: None
         """
-        self.__status_frame = ctl.create_frame(master, tk.X)
+        self.__status_frame = ctl.create_frame(master, tk.X, 0, 0)
         self.__status_frame.pack(fill=tk.X, side=tk.BOTTOM, anchor=tk.S)
         # Add label into the layout
         self.__style.layout('text.Horizontal.TProgressbar',
                             [('Horizontal.Progressbar.trough',
                               {'children': [('Horizontal.Progressbar.pbar', {'side': 'left', 'sticky': 's'})], 'sticky': 'swe'}),
                              ('Horizontal.Progressbar.label', {'sticky': 'we'})])
+        self.__style.configure('text.Horizontal.TProgressbar', font=ctl.FONT_REGULAR)
         self.__progress_bar = tk.ttk.Progressbar(master=self.__status_frame, orient=tk.HORIZONTAL, style='text.Horizontal.TProgressbar',
                                                  length=1, mode='determinate', value=0, maximum=75)
         self.__progress_bar.pack(fill=tk.X)
-        self.update_status('Open an image and click the Go button')
+        self.update_status('Open an image using the magnifying button and click Play')
 
     def create_workarea_section(self, master):
         """
@@ -140,9 +160,6 @@ class MainDialog(tk.Frame):
         :param master: Master dialog to add the frame to
         :return: None
         """
-        ctl.create_pad(master, tk.LEFT)
-        ctl.create_pad(master, tk.RIGHT)
-        ctl.create_pad(master, tk.BOTTOM)
         self.__figure_frame = ctl.create_frame(master, tk.BOTH)
         self.__figure_frame.configure(background='white')  # Make it white because I could not modify the PyPlot background
 
@@ -152,7 +169,7 @@ class MainDialog(tk.Frame):
         :param text: The text to set into the status bar
         :return: None
         """
-        self.__style.configure('text.Horizontal.TProgressbar', text=text)
+        self.__style.configure('text.Horizontal.TProgressbar', text=' ' + text)
 
     def start_progress(self):
         """
@@ -199,8 +216,6 @@ class MainDialog(tk.Frame):
         self.__file_path_entry['state'] = new_state
         self.__canny_checkbutton['state'] = new_state
         self.__gauss_checkbutton['state'] = new_state
-        self.__rect_mark_checkbutton['state'] = new_state
-        self.__dilate_size_spinbox['state'] = new_state
         self.__popup_image_button['state'] = new_state
 
     def open_file_action(self):
@@ -209,8 +224,18 @@ class MainDialog(tk.Frame):
         :return: None
         """
         file_name = tkfiledialog.askopenfilename(filetypes=[("Image File", '.jpg')])
-        self.__file_path_entry.delete(0, 'end')
+        self.__file_path_entry.delete(0, tk.END)
         self.__file_path_entry.insert(0, file_name)
+
+    def show_settings_dialog(self):
+        """
+        Displaying Settings dialog so user can customize the algorithm settings
+        :return: None
+        """
+        settings = SettingsDialog(self.master, self.settings).result
+        if settings:
+            self.settings = settings
+            self.settings.save()
 
     def on_enter_pressed(self, event=None):
         """
@@ -248,8 +273,7 @@ class MainDialog(tk.Frame):
                                                                                       lambda text: self.update_status(text),
                                                                                       bool(self.__canny_check_var.get()),
                                                                                       bool(self.__gauss_check_var.get()),
-                                                                                      bool(self.__rect_mark_check_var.get()),
-                                                                                      int(self.__dilate_size_spinbox.get()))
+                                                                                      self.settings)
         if self.__image is None or self.__processed_image is None:
             self.__error = True
 
