@@ -12,6 +12,16 @@ def log(consumer, *message):
     print(text)
 
 
+# I have created this method to compare matrices between py3.5 and py3.7 in order to find a bug I had in py3.5,
+# where I used a uint8 matrix rather than float64 and had overflows occurred in py3.5
+def dump_matrix_to_disk(mat, file_name):
+    with open(file_name, 'wb') as f:
+        f.write(str.encode(str(mat.shape)))
+        f.write(str.encode('\n'))
+        for line in mat:
+            np.savetxt(f, line, fmt='%.2f')
+
+
 def find_harris_corners(image, k, window_size, console_consumer=None):
     """
     Harris Corner Detector algorithm implementation.
@@ -42,7 +52,8 @@ def find_harris_corners(image, k, window_size, console_consumer=None):
 
     # Pad the image so we can calculate Harris score for the whole image
     # Use Copy Padding so we will not accidentally invent corners with a constant padding of 0's
-    padded = cv2.copyMakeBorder(twoD, offset, offset, offset, offset, cv2.BORDER_REPLICATE)
+    # From now on, go ahead as float64. Otherwise this won't work in py3.5 (It does work in 3.7 however)
+    padded = np.float64(cv2.copyMakeBorder(twoD, offset, offset, offset, offset, cv2.BORDER_REPLICATE))
 
     # For 2D array, so the result of gradient is two arrays ordered by axis
     dy, dx = np.gradient(padded)

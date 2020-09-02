@@ -1,10 +1,10 @@
 __author__ = "Haim Adrian"
 
 import matplotlib
+matplotlib.use('TkAgg')  # So we can embed plots in our dialog
 import tkinter as tk
 import view.maindialog as maindialog
 import view.controls as ctl
-matplotlib.use('TkAgg')  # So we can embed plots in our dialog
 
 
 if __name__ == '__main__':

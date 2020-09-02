@@ -327,4 +327,7 @@ class MainDialog(tk.Frame):
             plt.tight_layout(pad=0.5)
             plt.imshow(np.uint8(self.__processed_image[:, :, ::-1]))
             plt.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0.1, 0.1)
+            mng = plt.get_current_fig_manager()
+            mng.resize(*mng.window.maxsize())
+            mng.window.wm_geometry("+0+0")
             plt.show()
