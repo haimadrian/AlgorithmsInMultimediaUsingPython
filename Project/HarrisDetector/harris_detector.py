@@ -49,6 +49,7 @@ def corners_and_line_intersection_detector(image_path, console_consumer=None, is
                 image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
             # Mark the corners
+            log(console_consumer, 'Marking detected interest points...')
             if settings.is_using_rect_mark:
                 mark_corners_with_rect(image, harris_scores, settings)
             else:

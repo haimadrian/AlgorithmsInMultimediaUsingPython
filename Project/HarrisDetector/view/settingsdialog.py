@@ -29,7 +29,7 @@ def is_tuple(x):
 
     # Store a compiled regex onto the function so we will not have to recompile it over and over
     if not hasattr(is_tuple, 'tupleRegex'):
-        is_tuple.tupleRegex = re.compile(r"\( *\d+ *, *\d+ *, *\d+ *\)")
+        is_tuple.tupleRegex = re.compile(r"^ *\( *\d+ *, *\d+ *, *\d+ *\) *$")
     return len(str(x).strip()) > 0 and is_tuple.tupleRegex.match(str(x).strip()) is not None
 
 
@@ -47,6 +47,7 @@ def numeric_validator(widget, old_text, new_text):
         messagebox.showerror('Illegal Input', 'Input must be numeric. Was: {}'.format(new_text))
         widget.delete(0, tk.END)
         widget.insert(0, old_text)
+        widget.focus_set()
 
     return is_valid
 
@@ -65,6 +66,7 @@ class SettingsDialog(tk.Toplevel):
 
         # The result of the dialog: settings.Settings object
         self.__result = None
+        self.closing = False  # A marker to see if we are cancelling the window, to avoid of validating input
         self.settings = settings
         self.rect_mark_check_var = None  # tk.IntVar  - to hold the value of the rect_mark checkbox
         self.rect_mark_checkbutton = None  # tk.Checkbutton
@@ -140,7 +142,7 @@ class SettingsDialog(tk.Toplevel):
         self.harris_score_threshold_spinbox.bind('<FocusOut>',
                                                  lambda event: numeric_validator(self.harris_score_threshold_spinbox,
                                                                                  self.settings.harris_score_threshold,
-                                                                                 self.harris_score_threshold_spinbox.get()))
+                                                                                 self.harris_score_threshold_spinbox.get()) if not self.closing else None)
         self.harris_score_threshold_spinbox.grid(row=2, column=1, padx=5, pady=5, sticky=tk.EW)
 
         ctl.create_label(frame, text='Harris free parameter (k)').grid(row=3, padx=5, pady=5, sticky=tk.W)
@@ -149,7 +151,7 @@ class SettingsDialog(tk.Toplevel):
         self.harris_free_parameter_spinbox.bind('<FocusOut>',
                                                 lambda event: numeric_validator(self.harris_free_parameter_spinbox,
                                                                                 self.settings.harris_free_parameter,
-                                                                                self.harris_free_parameter_spinbox.get()))
+                                                                                self.harris_free_parameter_spinbox.get()) if not self.closing else None)
         self.harris_free_parameter_spinbox.grid(row=3, column=1, padx=5, pady=5, sticky=tk.EW)
 
         ctl.create_label(frame, text='Neighborhood size (Harris Matrix)').grid(row=4, padx=5, pady=5, sticky=tk.W)
@@ -158,7 +160,7 @@ class SettingsDialog(tk.Toplevel):
         self.neighborhood_size_spinbox.bind('<FocusOut>',
                                             lambda event: numeric_validator(self.neighborhood_size_spinbox,
                                                                             self.settings.neighborhood_size,
-                                                                            self.neighborhood_size_spinbox.get()))
+                                                                            self.neighborhood_size_spinbox.get()) if not self.closing else None)
         self.neighborhood_size_spinbox.grid(row=4, column=1, padx=5, pady=5, sticky=tk.EW)
 
         ctl.create_label(frame, text='Canny Edge Min threshold').grid(row=5, padx=5, pady=5, sticky=tk.W)
@@ -166,7 +168,7 @@ class SettingsDialog(tk.Toplevel):
         self.canny_min_threshold_entry.bind('<FocusOut>',
                                             lambda event: numeric_validator(self.canny_min_threshold_entry,
                                                                             self.settings.canny_min_thresh,
-                                                                            self.canny_min_threshold_entry.get()))
+                                                                            self.canny_min_threshold_entry.get()) if not self.closing else None)
         self.canny_min_threshold_entry.grid(row=5, column=1, padx=5, pady=5, sticky=tk.EW)
 
         ctl.create_label(frame, text='Canny Edge Max threshold').grid(row=6, padx=5, pady=5, sticky=tk.W)
@@ -174,7 +176,7 @@ class SettingsDialog(tk.Toplevel):
         self.canny_max_threshold_entry.bind('<FocusOut>',
                                             lambda event: numeric_validator(self.canny_max_threshold_entry,
                                                                             self.settings.canny_max_thresh,
-                                                                            self.canny_max_threshold_entry.get()))
+                                                                            self.canny_max_threshold_entry.get()) if not self.closing else None)
         self.canny_max_threshold_entry.grid(row=6, column=1, padx=5, pady=5, sticky=tk.EW)
 
         # Load settings object to the editors
@@ -216,6 +218,12 @@ class SettingsDialog(tk.Toplevel):
             self.initial_focus.focus_set()
             return
 
+        # Validate the color specifically because we have not registered a validation command on it, but a
+        # FocusOut binding only. The reason is we do want to allow several edits of the color as it is a Tuple string,
+        # and validation command validates each single input char..
+        if not self.color_validator_cmd(self.mark_color_entry.get()):
+            self.initial_focus.focus_set()
+
         self.withdraw()
         self.update_idletasks()
 
@@ -228,7 +236,10 @@ class SettingsDialog(tk.Toplevel):
         :param event:
         :return: None
         """
-        # put focus back to the parent window
+        # Sign that we are closing the window, so we will not perform any validation during exit
+        self.closing = True
+
+        # Put focus back to the parent window
         self.parent.focus_set()
         self.destroy()
 
@@ -272,6 +283,9 @@ class SettingsDialog(tk.Toplevel):
         :param new_text: Input text (to the spinbox)
         :return: Whether text is a valid integer (in range) or not
         """
+        if self.closing:
+            return True
+
         is_valid = False
         if new_text.isdigit():
             if 0 < int(new_text) <= 100:
@@ -283,6 +297,7 @@ class SettingsDialog(tk.Toplevel):
             messagebox.showerror('Illegal Input', 'Dilate size (rectangle) must be between 1 to 100. Was: {}'.format(new_text))
             self.dilate_size_spinbox.delete(0, tk.END)
             self.dilate_size_spinbox.insert(0, old_text)
+            self.dilate_size_spinbox.focus_set()
 
         return is_valid
 
@@ -294,9 +309,15 @@ class SettingsDialog(tk.Toplevel):
         :param new_text: Input text
         :return: Whether text is a valid number or not
         """
+        if self.closing:
+            return True
+
         return numeric_validator(self.nametowidget(widget_name), old_text, new_text)
 
     def color_validator_cmd(self, text):
+        if self.closing:
+            return True
+
         is_valid = False
         text = text.strip()
         if is_tuple(text):
@@ -310,6 +331,7 @@ class SettingsDialog(tk.Toplevel):
 
         if not is_valid:
             messagebox.showerror('Illegal Input', 'Input color is illegal. Was: {}'.format(text))
+            self.mark_color_entry.focus_set()
         else:
             self.mark_color = literal_eval(text)
             self.mark_color_entry.configure(background=ctl.color_to_hex(self.mark_color))

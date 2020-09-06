@@ -25,7 +25,10 @@ def dump_matrix_to_disk(mat, file_name):
 def find_harris_corners(image, k, window_size, console_consumer=None):
     """
     Harris Corner Detector algorithm implementation.
-    Harris detector responses are the R values from the equation: R = det(M) − k*(tr(M)**2)
+    Harris detector responses are the CRF(x, y) values from the equation: CRF = det(M) − k*(tr(M)**2) (Corner Response Function)
+    where det(M) = Lambda1*Lambda2, which is the value of the determinant, and tr(M) = Lambda1+Lambda2, which is the trace
+    of the determinant. (Lambda1, Lambda2 = eigen values).
+    When the CRF value of the pixel point is greater than the given threshold, it is determined that the target point is a corner point.
     :param image: Input single-channel 8-bit or floating-point image.
     :param k: Harris detector free parameter in the equation.
     :param window_size: Neighborhood size.
@@ -80,9 +83,9 @@ def find_harris_corners(image, k, window_size, console_consumer=None):
             detM = (sum_xx * sum_yy) - (sum_xy * sum_xy)  # Multiply main diagonal, minus multiplication of secondary diagonal
             traceM = sum_xx + sum_yy  # Main diagonal
 
-            # Calculate R for Harris Corner equation
-            R = detM - k * (traceM ** 2)
+            # Calculate corner_response_function for Harris Corner equation
+            corner_response_function = detM - k * (traceM ** 2)
 
-            harris_responses[x - offset, y - offset] = R
+            harris_responses[x - offset, y - offset] = corner_response_function
 
     return harris_responses

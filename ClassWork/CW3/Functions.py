@@ -180,7 +180,7 @@ def drawTriangle(img):
 
 
 # Assignment 9
-def drawGrayscale(imgName='img1.jpg'):
+def drawGrayscale(imgName='trunks.jpg'):
     if imgName.__class__ != ''.__class__:
         return None
 
