@@ -62,45 +62,71 @@ def find_harris_corners(image, k, window_size, console_consumer=None, progress_c
     else:
         twoD = image
 
-    offset = int(window_size / 2)
-
-    # Pad the image so we can calculate Harris score for the whole image
-    # Use Copy Padding so we will not accidentally invent corners with a constant padding of 0's
-    # From now on, go ahead as float64. Otherwise this won't work in py3.5 (It does work in 3.7 however)
-    padded = np.float64(cv2.copyMakeBorder(twoD, offset, offset, offset, offset, cv2.BORDER_REPLICATE))
-
-    # For 2D array, so the result of gradient is two arrays ordered by axis
-    dy, dx = np.gradient(padded)
-
-    # Compute products of derivatives at every pixel
-    Ixx = dx ** 2
-    Ixy = dx * dy
-    Iyy = dy ** 2
-
     # Calculate step size in the area we have to progress in a progressbar
     progress_steps_left = max_progress - progress
     progress_step = progress_steps_left / image.shape[0]
-    for x in range(offset, padded.shape[0] - offset):
-        for y in range(offset, padded.shape[1] - offset):
-            # The window according to the Harris Equation
-            window_Ixx = Ixx[x - offset: x + offset + 1, y - offset: y + offset + 1]
-            window_Ixy = Ixy[x - offset: x + offset + 1, y - offset: y + offset + 1]
-            window_Iyy = Iyy[x - offset: x + offset + 1, y - offset: y + offset + 1]
 
-            # Sum the squares in the sliding window.
-            # Here is the M = SUM_for-each-x-y(window(x, y)[[Ixx, Ixy], [Ixy, Iyy]]
-            sum_xx = window_Ixx.sum()
-            sum_xy = window_Ixy.sum()
-            sum_yy = window_Iyy.sum()
-
-            # Calculate determinant and trace for the sum of squares matrix (M)
-            detM = (sum_xx * sum_yy) - (sum_xy * sum_xy)  # Multiply main diagonal, minus multiplication of secondary diagonal
-            traceM = sum_xx + sum_yy  # Main diagonal
+    # Find all eigen values and vectors for each pixel in the image.
+    # Eigen values are used in order to find the determinant and trace, which are needed for Harris Corner equation
+    eigen_vals_and_vectors = cv2.cornerEigenValsAndVecs(twoD, window_size, 5)
+    for x in range(eigen_vals_and_vectors.shape[0]):
+        for y in range(eigen_vals_and_vectors.shape[1]):
+            # Calculate determinant and trace based on the eigen values
+            curr_eigen_vals = eigen_vals_and_vectors[x, y]
+            detM = curr_eigen_vals[0] * curr_eigen_vals[1]
+            traceM = curr_eigen_vals[0] + curr_eigen_vals[1]
 
             # Calculate corner_response_function for Harris Corner equation
             corner_response_function = detM - k * (traceM ** 2)
 
-            harris_responses[x - offset, y - offset] = corner_response_function
+            harris_responses[x, y] = corner_response_function
         progress = do_progress(progress_consumer, progress, progress_step)
 
     return harris_responses
+
+
+# I leave this code here as originally I have started from it until found cornerEigenValsAndVecs
+# Behind the scenes of cv2.cornerEigenValsAndVecs:
+
+# ! offset = int(window_size / 2)
+# Pad the image so we can calculate Harris score for the whole image
+# Use Copy Padding so we will not accidentally invent corners with a constant padding of 0's
+# From now on, go ahead as float64. Otherwise this won't work in py3.5 (It does work in 3.7 however)
+# ! padded = np.float64(cv2.copyMakeBorder(twoD, offset, offset, offset, offset, cv2.BORDER_REPLICATE))
+
+# For 2D array, so the result of gradient is two arrays ordered by axis
+# ! dy, dx = np.gradient(padded)
+
+# Compute products of derivatives at every pixel
+# ! Ixx = dx ** 2
+# ! Ixy = dx * dy
+# ! Iyy = dy ** 2
+
+# Calculate step size in the area we have to progress in a progressbar
+# ! progress_steps_left = max_progress - progress
+# ! progress_step = progress_steps_left / image.shape[0]
+# ! for x in range(offset, padded.shape[0] - offset):
+# ! for y in range(offset, padded.shape[1] - offset):
+# The window according to the Harris Equation
+# ! window_Ixx = Ixx[x - offset: x + offset + 1, y - offset: y + offset + 1]
+# ! window_Ixy = Ixy[x - offset: x + offset + 1, y - offset: y + offset + 1]
+# ! window_Iyy = Iyy[x - offset: x + offset + 1, y - offset: y + offset + 1]
+
+# Sum the squares in the sliding window.
+# Here is the M = SUM_for-each-x-y(window(x, y)[[Ixx, Ixy], [Ixy, Iyy]]
+# ! sum_xx = window_Ixx.sum()
+# ! sum_xy = window_Ixy.sum()
+# ! sum_yy = window_Iyy.sum()
+
+# Calculate determinant and trace for the sum of squares matrix (M)
+# ! detM = (sum_xx * sum_yy) - (sum_xy * sum_xy)  # Multiply main diagonal, minus multiplication of secondary diagonal
+# ! traceM = sum_xx + sum_yy  # Main diagonal
+
+# Calculate corner_response_function for Harris Corner equation
+# ! corner_response_function = detM - k * (traceM ** 2)
+
+# ! harris_responses[x - offset, y - offset] = corner_response_function
+
+# ! progress = do_progress(progress_consumer, progress, progress_step)
+
+# ! return harris_responses
