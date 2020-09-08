@@ -60,6 +60,7 @@ class MainDialog(tk.Frame):
         self.__image = None  # A reference to the input image. It is being set by the Harris Detector action
         self.__processed_image = None  # A reference to the processed image (outcome). It is being set by the Harris Detector action
         self.__error = False  # Indication for a failure during Harris Detector algorithm
+        self.progress_text_format = '{0}%'
 
         self.__style = Style(master)
         self.__style.theme_use('clam')
@@ -150,7 +151,7 @@ class MainDialog(tk.Frame):
                              ('Horizontal.Progressbar.label', {'sticky': 'we'})])
         self.__style.configure('text.Horizontal.TProgressbar', font=ctl.FONT_REGULAR)
         self.__progress_bar = tk.ttk.Progressbar(master=self.__status_frame, orient=tk.HORIZONTAL, style='text.Horizontal.TProgressbar',
-                                                 length=1, mode='determinate', value=0, maximum=75)
+                                                 length=101, mode='determinate', value=0, maximum=101)
         self.__progress_bar.pack(fill=tk.X)
         self.update_status('Open an image using the magnifying button and click Play')
 
@@ -170,17 +171,26 @@ class MainDialog(tk.Frame):
         :return: None
         """
         self.__style.configure('text.Horizontal.TProgressbar', text=' ' + text)
+        self.progress_text_format = ' ' + text + ' {0}%'
+
+    def update_progress(self, progress):
+        """
+        Updates the progress bar with a progress, so user can see how much time remains
+        :param progress: The progress sto set to the progressbar
+        :return: None
+        """
+        progress = np.min([100, int(progress)])
+        self.__progress_bar['value'] = progress
+        self.__style.configure('text.Horizontal.TProgressbar', text=self.progress_text_format.format(progress))
 
     def start_progress(self):
         """
-        Start an indeterminate progress in the progress bar, for visualizing process.
+        Prepare for starting a progress in the progress bar, for visualizing process.
         We also start checking the job queue to detect if the algorithm has finished its execution so we can display the outcome
         :return: None
         """
         self.set_user_components_state('disabled')
         self.__image = self.__processed_image = None
-        self.__progress_bar.configure(mode='indeterminate')
-        self.__progress_bar.start()
         self.__running = True
         self.periodically_check_outcome()
 
@@ -198,8 +208,7 @@ class MainDialog(tk.Frame):
         Stops the progress of the progress bar, and the periodic check of the job queue
         :return: None
         """
-        self.__progress_bar.stop()
-        self.__progress_bar.configure(mode='determinate')
+        # self.__progress_bar.stop()
         self.__progress_bar['value'] = 0
         self.__running = False
         self.set_user_components_state('normal')
@@ -271,6 +280,7 @@ class MainDialog(tk.Frame):
         """
         self.__image, self.__processed_image = corners_and_line_intersection_detector(path,
                                                                                       lambda text: self.update_status(text),
+                                                                                      lambda progress: self.update_progress(progress),
                                                                                       bool(self.__canny_check_var.get()),
                                                                                       bool(self.__gauss_check_var.get()),
                                                                                       self.settings)
@@ -315,7 +325,7 @@ class MainDialog(tk.Frame):
             self.show_images(self.__image, self.__processed_image)
 
         if self.__running:
-            self.master.after(200, self.periodically_check_outcome)
+            self.master.after(100, self.periodically_check_outcome)
 
     def popup_image(self):
         """

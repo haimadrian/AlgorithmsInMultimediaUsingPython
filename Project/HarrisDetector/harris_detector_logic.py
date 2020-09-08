@@ -12,6 +12,14 @@ def log(consumer, *message):
     print(text)
 
 
+def do_progress(consumer, current_progress, step):
+    if consumer is not None:
+        current_progress += step
+        consumer(current_progress)
+
+    return current_progress
+
+
 # I have created this method to compare matrices between py3.5 and py3.7 in order to find a bug I had in py3.5,
 # where I used a uint8 matrix rather than float64 and had overflows occurred in py3.5
 def dump_matrix_to_disk(mat, file_name):
@@ -22,7 +30,7 @@ def dump_matrix_to_disk(mat, file_name):
             np.savetxt(f, line, fmt='%.2f')
 
 
-def find_harris_corners(image, k, window_size, console_consumer=None):
+def find_harris_corners(image, k, window_size, console_consumer=None, progress_consumer=None, progress=0, max_progress=99):
     """
     Harris Corner Detector algorithm implementation.
     Harris detector responses are the CRF(x, y) values from the equation: CRF = det(M) − k*(tr(M)**2) (Corner Response Function)
@@ -33,6 +41,9 @@ def find_harris_corners(image, k, window_size, console_consumer=None):
     :param k: Harris detector free parameter in the equation.
     :param window_size: Neighborhood size.
     :param console_consumer: Used for logging purposes. (Passing step updates to a listener)
+    :param progress_consumer: A lambda / function to handle progress updates
+    :param progress: Starting value of the progress, to show progress relative to this value
+    :param max_progress: Ending value of the progress, to show progress until this value
     :return: Image to store the Harris detector responses. It has the same size as source image. dst(x,y) = detM(x,y) − k*(trM(x,y)**2)
     Corners in the image can be found as the local maxima of this response map.
     """
@@ -66,6 +77,9 @@ def find_harris_corners(image, k, window_size, console_consumer=None):
     Ixy = dx * dy
     Iyy = dy ** 2
 
+    # Calculate step size in the area we have to progress in a progressbar
+    progress_steps_left = max_progress - progress
+    progress_step = progress_steps_left / image.shape[0]
     for x in range(offset, padded.shape[0] - offset):
         for y in range(offset, padded.shape[1] - offset):
             # The window according to the Harris Equation
@@ -87,5 +101,6 @@ def find_harris_corners(image, k, window_size, console_consumer=None):
             corner_response_function = detM - k * (traceM ** 2)
 
             harris_responses[x - offset, y - offset] = corner_response_function
+        progress = do_progress(progress_consumer, progress, progress_step)
 
     return harris_responses

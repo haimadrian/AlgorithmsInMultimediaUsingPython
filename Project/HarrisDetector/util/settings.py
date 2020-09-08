@@ -152,7 +152,8 @@ class Settings:
                                  str(self.corners_color) + '\n',
                                  str(self.canny_min_thresh) + '\n',
                                  str(self.canny_max_thresh) + '\n',
-                                 str(self.dilate_size) + '\n'])
+                                 str(self.dilate_size) + '\n',
+                                 str(self.is_using_rect_mark) + '\n'])
         return self
 
     def load(self):
@@ -172,6 +173,7 @@ class Settings:
                     self.canny_min_thresh = float(in_file.readline().strip())
                     self.canny_max_thresh = float(in_file.readline().strip())
                     self.dilate_size = int(in_file.readline().strip())
+                    self.is_using_rect_mark = (in_file.readline().strip() == 'True')
 
                     if not 0 < self.dilate_size <= 100:
                         self.dilate_size = 20
