@@ -5,33 +5,63 @@ from matplotlib import pyplot as plt
 
 
 def main():
-    X = np.arange(0, 101)
-    Y = [func(x) for x in X]
+    X = np.arange(0, 100, 1/1000)
+    Y = np.array([func(x) for x in X])
 
     plt.figure('Assignment 1')
+    figManager = plt.get_current_fig_manager()
+    figManager.window.showMaximized()
     plt.plot(X, Y, 'r')
-    plt.pause(0.05)
     plt.title('(sin(x) + 0.25 * |x - 30|) * (x - 50)^2')
+    plt.grid()
     plt.xlabel('X (1kHz)')
     plt.ylabel('Y')
 
-    prev_point = np.random.randint(0, len(X))
-    epsilon = 1
-    gamma = 1e-2
+    prev_point = np.random.uniform(80, 90)
+    curr_point = prev_point + 0.01
+    xs = curr_point
+
+    plt.plot(xs, Y[np.argmin(np.abs(X - xs))], 'bx')
+
+    df = np.gradient(Y)
+
+    epsilon = 1e-7
     while True:
-        dfdx = func(prev_point + 2) - func(prev_point)
-        curr_point = int(np.floor(prev_point - gamma * dfdx))
-        plt.plot(curr_point, func(curr_point), 'bo')
-        plt.pause(0.05)
-        if np.abs(dfdx) < epsilon:
-            print(dfdx)
+        df0 = df[np.argmin(np.abs(X - prev_point))]
+        df1 = df[np.argmin(np.abs(X - curr_point))]
+
+        eps = (df1 - df0) ** 2
+        if eps <= epsilon:
             break
-        new_dfdx = func(curr_point + 1) - func(curr_point)
-        if new_dfdx == dfdx:
-            print('equals:', dfdx)
+
+        # Avoid division by zero
+        if eps:
+            # t = (x1 - x0) * (df1 - df0) / ((df1 - df0) ** 2)
+            # In case of 1 dimension, the equation can be shortened:
+            gamma = (curr_point - prev_point) / (df1 - df0)
+        else:
+            gamma = 0
+            prev_point = curr_point
+
+        prev_point, curr_point = curr_point, prev_point - (np.abs(gamma) * df0)
+        # Gradient Ascent would be calculated as: x0 + (np.abs(t) * df0)
+
+        # Avoid going out of boundaries
+        if curr_point < X[0]:
+            curr_point = X[0]
             break
-        gamma = (curr_point - prev_point) / np.abs(new_dfdx - dfdx)
-        prev_point = curr_point
+        elif curr_point > X[-1]:
+            curr_point = X[-1]
+            break
+
+        # Dynamic graph
+        plt.plot(curr_point, Y[np.argmin(np.abs(X - curr_point))], 'bo')
+        # plt.grid()
+        plt.pause(0.5)
+        # plt.cla()
+    print('Finish')
+    plt.plot(curr_point, Y[np.argmin(np.abs(X - curr_point))], 'r*')
+    plt.pause(0.5)
     plt.show()
 
 
