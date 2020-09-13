@@ -2,8 +2,10 @@ __author__ = "Haim Adrian"
 
 import numpy as np
 import tkinter as tk
+import tkinter.ttk as ttk
 import os
 import view.controls as ctl
+from util import settings
 from util.settings import Settings
 from tkinter import messagebox
 from ast import literal_eval
@@ -53,7 +55,7 @@ def numeric_validator(widget, old_text, new_text):
 
 
 class SettingsDialog(tk.Toplevel):
-    def __init__(self, parent, settings: Settings):
+    def __init__(self, parent, a_settings: Settings):
         tk.Toplevel.__init__(self, parent)
 
         # Hide the dialog in the task bar. Let it be an inner window of the parent window
@@ -67,10 +69,10 @@ class SettingsDialog(tk.Toplevel):
         # The result of the dialog: settings.Settings object
         self.__result = None
         self.closing = False  # A marker to see if we are cancelling the window, to avoid of validating input
-        self.settings = settings
+        self.settings = a_settings
         self.rect_mark_check_var = None  # tk.IntVar  - to hold the value of the rect_mark checkbox
         self.rect_mark_checkbutton = None  # tk.Checkbutton
-        self.mark_color = settings.corners_color  # Tuple (R, G, B)
+        self.mark_color = self.settings.corners_color  # Tuple (R, G, B)
         self.mark_color_entry = None  # tk.Button
         self.dilate_size_spinbox = None  # tk.Spinbox
         self.harris_score_threshold_spinbox = None  # tk.Entry
@@ -78,6 +80,8 @@ class SettingsDialog(tk.Toplevel):
         self.neighborhood_size_spinbox = None  # tk.Entry
         self.canny_min_threshold_entry = None  # tk.Entry
         self.canny_max_threshold_entry = None  # tk.Entry
+        self.quality_combo = None  # ttk.Combobox
+        self.quality_var = None  # tk.StringVar
 
         # Build the body
         body = tk.Frame(self)
@@ -179,6 +183,13 @@ class SettingsDialog(tk.Toplevel):
                                                                             self.canny_max_threshold_entry.get()) if not self.closing else None)
         self.canny_max_threshold_entry.grid(row=6, column=1, padx=5, pady=5, sticky=tk.EW)
 
+        ctl.create_label(frame, text='Corners detection quality').grid(row=7, padx=5, pady=5, sticky=tk.W)
+        self.quality_var = tk.StringVar()
+        self.quality_combo = ttk.Combobox(frame, textvariable=self.quality_var, values=(settings.HIGH_QUALITY, settings.LOW_QUALITY),
+                                          style='TCombobox', state='readonly')
+        self.quality_combo.grid(row=7, column=1, padx=5, pady=5, sticky=tk.EW)
+        self.quality_var.set(settings.HIGH_QUALITY)
+
         # Load settings object to the editors
         self.init_settings()
 
@@ -274,7 +285,8 @@ class SettingsDialog(tk.Toplevel):
                                  int(float(self.canny_min_threshold_entry.get())),
                                  int(float(self.canny_max_threshold_entry.get())),
                                  bool(self.rect_mark_check_var.get()),
-                                 int(float(self.dilate_size_spinbox.get())))
+                                 int(float(self.dilate_size_spinbox.get())),
+                                 self.quality_var.get())
 
     def dilate_size_validator(self, old_text, new_text):
         """
@@ -365,3 +377,4 @@ class SettingsDialog(tk.Toplevel):
         reset_text(self.neighborhood_size_spinbox, self.settings.neighborhood_size)
         reset_text(self.canny_min_threshold_entry, int(self.settings.canny_min_thresh))
         reset_text(self.canny_max_threshold_entry, int(self.settings.canny_max_thresh))
+        self.quality_var.set(self.settings.corners_quality)

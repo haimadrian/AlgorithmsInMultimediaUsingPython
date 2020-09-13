@@ -70,6 +70,14 @@ class MainDialog(tk.Frame):
         self.__style.configure('TButton', font=ctl.FONT_BUTTON, borderwidth='1', background=ctl.BACKGROUND_COLOR, relief='FLAT')
         self.__style.configure('TLabel', font=ctl.FONT_REGULAR)
         self.__style.map('TButton', background=[('active', '!disabled', '#4E6067')])
+        self.__style.map('TCombobox', foreground=[('readonly', '!disabled', ctl.FOREGROUND_EDITOR_COLOR)])
+        self.__style.map('TCombobox', background=[('readonly', '!disabled', ctl.BACKGROUND_EDITOR_COLOR)])
+        self.__style.map('TCombobox', fieldbackground=[('readonly', '!disabled', ctl.BACKGROUND_EDITOR_COLOR)])
+        self.__style.map('TCombobox', lightcolor=[('readonly', '!disabled', 'black')])
+        self.__style.map('TCombobox', darkcolor=[('readonly', '!disabled', 'black')])
+        self.__style.map('TCombobox', bordercolor=[('readonly', '!disabled', '#E0E0E0')])
+        master.option_add("*TCombobox*Listbox*Background", ctl.BACKGROUND_EDITOR_COLOR)
+        master.option_add("*TCombobox*Listbox*Foreground", ctl.FOREGROUND_EDITOR_COLOR)
 
         self.create_title_section(master)
         self.create_action_section(master)
@@ -337,7 +345,14 @@ class MainDialog(tk.Frame):
             plt.tight_layout(pad=0.5)
             plt.imshow(np.uint8(self.__processed_image[:, :, ::-1]))
             plt.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0.1, 0.1)
-            mng = plt.get_current_fig_manager()
-            mng.resize(*mng.window.maxsize())
-            mng.window.wm_geometry("+0+0")
+            figure_manager = plt.get_current_fig_manager()
+            figure_manager.window.iconbitmap(os.path.abspath(os.path.join('resource', 'corners-icon.ico')))
+            try:
+                # In case there would be an issue on Ubuntu or something like that, just catch the error and use resize
+                figure_manager.window.state('zoomed')
+            except Exception as e:
+                print('Error has occurred while trying to show window as maximized. Fallback to resize strategy:', str(e))
+                figure_manager.resize(*figure_manager.window.maxsize())
+                figure_manager.window.wm_geometry("+0+0")
+
             plt.show()

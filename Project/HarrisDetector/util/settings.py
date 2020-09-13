@@ -4,6 +4,8 @@ import os
 from ast import literal_eval
 
 SETTINGS_FILE_NAME = 'settings.txt'
+HIGH_QUALITY = 'High'
+LOW_QUALITY = 'Low'
 
 
 class Settings:
@@ -14,7 +16,7 @@ class Settings:
     """
 
     def __init__(self, harris_score_threshold=0.01, harris_free_parameter=0.04, neighborhood_size=5, corners_color=(0, 255, 0),
-                 canny_min_thresh=100, canny_max_thresh=200, is_using_rect_mark=True, dilate_size=20):
+                 canny_min_thresh=100, canny_max_thresh=200, is_using_rect_mark=True, dilate_size=20, corners_quality=HIGH_QUALITY):
         """
         Constructs a new Settings instance.
         :param harris_score_threshold: See :py:attr:`~.settings.Settings.harris_score_threshold`
@@ -25,6 +27,7 @@ class Settings:
         :param canny_max_thresh: See :py:attr:`~settings.Settings.canny_max_thresh`
         :param is_using_rect_mark: See :py:attr:`~settings.Settings.is_using_rect_mark`
         :param dilate_size: See :py:attr:`~settings.Settings.dilate_size`
+        :param corners_quality: See :py:attr:`~settings.Settings.corners_quality`
         """
         self.harris_score_threshold = harris_score_threshold
         self.harris_free_parameter = harris_free_parameter
@@ -34,6 +37,7 @@ class Settings:
         self.canny_max_thresh = canny_max_thresh
         self.is_using_rect_mark = is_using_rect_mark
         self.dilate_size = dilate_size
+        self.corners_quality = corners_quality
 
     @property
     def harris_score_threshold(self):
@@ -139,6 +143,21 @@ class Settings:
     def dilate_size(self, value):
         self.__dilate_size = value
 
+    @property
+    def corners_quality(self):
+        """
+        A string representing the corners detection quality.
+        Possible values are 'Low' or 'High', where for High quality we enhance corners detection by using cv2.cornerSubPix, and then
+        mark the pixels to make it bold - this costs cpu time, so it is configurable to let users to select Low quality which
+        is faster
+        :return: Corners detection quality
+        """
+        return self.__corners_quality
+
+    @corners_quality.setter
+    def corners_quality(self, value):
+        self.__corners_quality = value
+
     def save(self):
         """
         Store settings to file
@@ -153,7 +172,8 @@ class Settings:
                                  str(self.canny_min_thresh) + '\n',
                                  str(self.canny_max_thresh) + '\n',
                                  str(self.dilate_size) + '\n',
-                                 str(self.is_using_rect_mark) + '\n'])
+                                 str(self.is_using_rect_mark) + '\n',
+                                 str(self.corners_quality) + '\n'])
         return self
 
     def load(self):
@@ -174,10 +194,10 @@ class Settings:
                     self.canny_max_thresh = float(in_file.readline().strip())
                     self.dilate_size = int(in_file.readline().strip())
                     self.is_using_rect_mark = (in_file.readline().strip() == 'True')
+                    self.corners_quality = in_file.readline().strip()
 
                     if not 0 < self.dilate_size <= 100:
                         self.dilate_size = 20
             except Exception as e:
-                print('Error has occurred while reading settings file. File has to be overridden')
-                print(e)
+                print('Error has occurred while reading settings file. File has to be overridden. Error:', str(e))
         return self

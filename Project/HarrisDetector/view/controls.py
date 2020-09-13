@@ -102,7 +102,6 @@ def create_spinbox(master, values, width, validate_command, side=None):
     :return: The created check button, followed by its IntVar
     """
     spinbox = tk.Spinbox(master=master, width=width, values=values, font=FONT_REGULAR, validate='all', validatecommand=validate_command,
-                         selectbackground=BACKGROUND_EDITOR_COLOR, selectforeground=FOREGROUND_EDITOR_COLOR,
                          background=BACKGROUND_EDITOR_COLOR, foreground=FOREGROUND_EDITOR_COLOR)
     if side:
         spinbox.pack(side=side)
