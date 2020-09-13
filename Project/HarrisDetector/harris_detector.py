@@ -22,7 +22,7 @@ def corners_and_line_intersection_detector(image_path, console_consumer=None, pr
     """
     start = timer()
     img = cv2.imread(image_path)
-    progress = do_progress(progress_consumer, 0, 1)
+    progress = do_progress(progress_consumer, 0, 5)
 
     success = False
 
@@ -34,18 +34,16 @@ def corners_and_line_intersection_detector(image_path, console_consumer=None, pr
         if is_applying_gauss:
             log(console_consumer, 'Applying Gaussian Blur...')
             image = apply_gaussian_blur(image)  # yields either 3D or 2D, depends on the image
-            progress = do_progress(progress_consumer, progress, 4)
+            progress = do_progress(progress_consumer, progress, 10)
 
         if is_using_canny:
             log(console_consumer, 'Running Canny Edge Detection...')
             image = cv2.Canny(image, settings.canny_min_thresh, settings.canny_max_thresh)  # yields 2D
-            progress = do_progress(progress_consumer, progress, 5)
+            progress = do_progress(progress_consumer, progress, 10)
 
         log(console_consumer, 'Detecting corners...')
-        max_progress = 60 if settings.corners_quality == HIGH_QUALITY else 92
-        harris_scores = find_harris_corners(image, settings.harris_free_parameter, settings.neighborhood_size, console_consumer,
-                                            progress_consumer, progress, max_progress)
-        progress = max_progress
+        harris_scores = find_harris_corners(image, settings.harris_free_parameter, settings.neighborhood_size, console_consumer)
+        progress = do_progress(progress_consumer, progress, 10)
 
         if harris_scores is None:
             log(console_consumer, 'Error has occurred while detecting corners. Result was None')
@@ -104,19 +102,21 @@ def mark_corners(image, harris_scores, settings, progress_consumer, progress):
     corners_color = settings.corners_color[::-1]
     progress_steps_left = 100 - progress
     progress_step = progress_steps_left / harris_scores.shape[0]
-    for i in range(harris_scores.shape[0]):
-        for j in range(harris_scores.shape[1]):
-            if harris_scores[i, j] == 255:
-                top = i - settings.dilate_size
-                left = j - settings.dilate_size
-                bottom = i + settings.dilate_size
-                right = j + settings.dilate_size
+    thickness = np.max([2, int(np.round((harris_scores.shape[0] + harris_scores.shape[1]) / 500))])
 
-                if settings.is_using_rect_mark:
-                    # Draw a green rectangle to visualize the bounding rect
-                    cv2.rectangle(image, (left, top), (right, bottom), corners_color, 2)
-                else:
-                    cv2.circle(image, (j, i), 2, settings.corners_color[::-1], 2)
+    # Instead of scanning the whole harris_scores matrix, which is terribly slow, get array of indices where we have marks only.
+    indices_of_corners = np.column_stack(np.where(harris_scores == 255))
+    for curr_point in indices_of_corners:
+        top = curr_point[0] - settings.dilate_size
+        left = curr_point[1] - settings.dilate_size
+        bottom = curr_point[0] + settings.dilate_size
+        right = curr_point[1] + settings.dilate_size
+
+        if settings.is_using_rect_mark:
+            # Draw a green rectangle to visualize the bounding rect
+            cv2.rectangle(image, (left, top), (right, bottom), corners_color, thickness)
+        else:
+            cv2.circle(image, (curr_point[1], curr_point[0]), 2, settings.corners_color[::-1], thickness)
         progress = do_progress(progress_consumer, progress, progress_step)
     return None
 
@@ -188,6 +188,7 @@ def mark_corners_with_rect(image, harris_scores, settings, progress_consumer, pr
     # Find all contours so we can make rectangles out of them
     contours, hierarchy = cv2.findContours(helper_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     corners_color = settings.corners_color[::-1]
+    thickness = np.max([2, int(np.round((harris_scores.shape[0] + harris_scores.shape[1]) / 500))])
 
     # Calculate step size in the area we have to progress in a progressbar
     progress_steps_left = 100 - progress
@@ -197,5 +198,5 @@ def mark_corners_with_rect(image, harris_scores, settings, progress_consumer, pr
         left, top, width, height = cv2.boundingRect(c)
 
         # Draw a green rectangle to visualize the bounding rect
-        cv2.rectangle(image, (left, top), (left + width, top + height), corners_color, 2)
+        cv2.rectangle(image, (left, top), (left + width, top + height), corners_color, thickness)
         progress = do_progress(progress_consumer, progress, progress_step)

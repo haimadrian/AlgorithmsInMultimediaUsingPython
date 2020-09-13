@@ -30,7 +30,7 @@ def dump_matrix_to_disk(mat, file_name):
             np.savetxt(f, line, fmt='%.2f')
 
 
-def find_harris_corners(image, k, window_size, console_consumer=None, progress_consumer=None, progress=0, max_progress=99):
+def find_harris_corners(image, k, window_size, console_consumer=None):
     """
     Harris Corner Detector algorithm implementation.
     Harris detector responses are the CRF(x, y) values from the equation: CRF = det(M) − k*(tr(M)**2) (Corner Response Function)
@@ -41,9 +41,6 @@ def find_harris_corners(image, k, window_size, console_consumer=None, progress_c
     :param k: Harris detector free parameter in the equation.
     :param window_size: Neighborhood size.
     :param console_consumer: Used for logging purposes. (Passing step updates to a listener)
-    :param progress_consumer: A lambda / function to handle progress updates
-    :param progress: Starting value of the progress, to show progress relative to this value
-    :param max_progress: Ending value of the progress, to show progress until this value
     :return: Image to store the Harris detector responses. It has the same size as source image. dst(x,y) = detM(x,y) − k*(trM(x,y)**2)
     Corners in the image can be found as the local maxima of this response map.
     """
@@ -55,32 +52,22 @@ def find_harris_corners(image, k, window_size, console_consumer=None, progress_c
         log(console_consumer, 'find_harris_corners: Illegal image dimension. Image N-dimension can be 2 or 3 only. Was:', image.ndim)
         return None
 
-    harris_responses = np.zeros((image.shape[0], image.shape[1]), dtype=np.float64)
-
     if image.ndim == 3:
         twoD = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
         twoD = image
 
-    # Calculate step size in the area we have to progress in a progressbar
-    progress_steps_left = max_progress - progress
-    progress_step = progress_steps_left / image.shape[0]
-
     # Find all eigen values and vectors for each pixel in the image.
     # Eigen values are used in order to find the determinant and trace, which are needed for Harris Corner equation
     eigen_vals_and_vectors = cv2.cornerEigenValsAndVecs(twoD, window_size, 5)
-    for x in range(eigen_vals_and_vectors.shape[0]):
-        for y in range(eigen_vals_and_vectors.shape[1]):
-            # Calculate determinant and trace based on the eigen values
-            curr_eigen_vals = eigen_vals_and_vectors[x, y]
-            detM = curr_eigen_vals[0] * curr_eigen_vals[1]
-            traceM = curr_eigen_vals[0] + curr_eigen_vals[1]
 
-            # Calculate corner_response_function for Harris Corner equation
-            corner_response_function = detM - k * (traceM ** 2)
-
-            harris_responses[x, y] = corner_response_function
-        progress = do_progress(progress_consumer, progress, progress_step)
+    # 0 is for first eigen value, and 1 is for second eigen value
+    # Use batch operation rather than going in a very slow loop over them and calculate the response for each pixel
+    # det(M) = lambda1 * lambda2
+    # trace(M) = lambda1 + lambda2
+    detM = eigen_vals_and_vectors[:, :, 0] * eigen_vals_and_vectors[:, :, 1]
+    traceM = eigen_vals_and_vectors[:, :, 0] + eigen_vals_and_vectors[:, :, 1]
+    harris_responses = detM - k * (traceM ** 2)
 
     return harris_responses
 
