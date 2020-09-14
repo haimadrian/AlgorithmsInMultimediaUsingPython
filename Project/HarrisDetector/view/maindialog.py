@@ -372,6 +372,12 @@ class MainDialog(tk.Frame):
         :param file_path: Path to the video file to load
         :return: None
         """
+        font = cv2.FONT_HERSHEY_COMPLEX
+        bottom_left_corner_of_text = (10, 30)
+        font_scale = 1
+        font_color = (0, 255, 0)
+        lineType = 1
+
         cap = cv2.VideoCapture(file_path)
         while cap.isOpened():
             ret, frame = cap.read()
@@ -387,7 +393,10 @@ class MainDialog(tk.Frame):
                                                                             self.settings)
             self.__progress_bar['value'] = 0
 
-            cv2.imshow('Corners Detector', processed_image)
+            if processed_image is not None:
+                cv2.putText(processed_image, 'Press q to stop', bottom_left_corner_of_text, font, font_scale, font_color, lineType)
+                cv2.imshow('Corners Detector', processed_image)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         cap.release()
