@@ -6,13 +6,13 @@ from util.settings import Settings
 from util.settings import HIGH_QUALITY
 
 
-def corners_and_line_intersection_detector(image_path, console_consumer=None, progress_consumer=None, is_using_canny=False,
+def corners_and_line_intersection_detector(img, console_consumer=None, progress_consumer=None, is_using_canny=False,
                                            is_applying_gauss=False, settings=Settings()):
     """
     Main entry point to the Harris Detector algorithm
     We call this method from main frame in order to open an image, detect corners in it, and return both the image and
     a copy of the image with the corners marked out
-    :param image_path: Path of the image to read
+    :param img: Image to work on
     :param console_consumer: A lambda / function to handle status updates
     :param progress_consumer: A lambda / function to handle progress updates
     :param is_using_canny: Whether we should detect edges using Canny Edge Detection before Harris Detector, or not
@@ -21,13 +21,12 @@ def corners_and_line_intersection_detector(image_path, console_consumer=None, pr
     :return: image, image_with_marks
     """
     start = timer()
-    img = cv2.imread(image_path)
     progress = do_progress(progress_consumer, 0, 5)
 
     success = False
 
     if img is None:
-        log(console_consumer, 'Unable to open image:', image_path)
+        log(console_consumer, 'Specified image was None')
         image = None
     else:
         image = img.copy()
@@ -131,7 +130,9 @@ def enhance_corners_accuracy(harris_scores, image, settings):
     :param settings: Setting for fetching harris score threshold from
     :return: Centers of each corner in an image with same shape of original image
     """
-    helper_image = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
+    rows = image.shape[0]
+    cols = image.shape[1]
+    helper_image = np.zeros((rows, cols), dtype=np.uint8)
     dst = cv2.dilate(harris_scores, None)
     ret, dst = cv2.threshold(dst, settings.harris_score_threshold * dst.max(), 255, 0)
     dst = np.uint8(dst)
@@ -150,6 +151,8 @@ def enhance_corners_accuracy(harris_scores, image, settings):
     # Now draw them
     res = np.hstack((centroids, corners))
     res = np.int0(res)
+    res[:, 3][res[:, 3] >= rows] = rows - 1  # Make sure we do not get out of bounds
+    res[:, 2][res[:, 2] >= cols] = cols - 1  # Make sure we do not get out of bounds
     helper_image[res[:, 3], res[:, 2]] = 255
 
     # For some reason we get the center of the image marked even though there is nothing there.
@@ -187,6 +190,9 @@ def mark_corners_with_rect(image, harris_scores, settings, progress_consumer, pr
 
     # Find all contours so we can make rectangles out of them
     contours, hierarchy = cv2.findContours(helper_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if len(contours) == 0:
+        return None
+
     corners_color = settings.corners_color[::-1]
     thickness = np.max([2, int(np.round((harris_scores.shape[0] + harris_scores.shape[1]) / 500))])
 

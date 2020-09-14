@@ -6,6 +6,7 @@ import tkinter.filedialog as tkfiledialog
 import os
 import view.controls as ctl
 import numpy as np
+import cv2
 from matplotlib import pyplot as plt
 from threading import Thread
 from tkinter.ttk import Style
@@ -16,6 +17,10 @@ from view.tooltip import Tooltip
 from util.settings import Settings
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+
+
+def is_video(file_path):
+    return file_path.endswith('mp4') or file_path.endswith('avi') or file_path.endswith('wmv')
 
 
 class MainDialog(tk.Frame):
@@ -121,7 +126,7 @@ class MainDialog(tk.Frame):
         self.__open_file_button = ttk.Button(master=self.__action_frame, image=self.__magnifying_icon,
                                              command=self.open_file_action, style='TButton', width=4)
         self.__open_file_button.pack(side=tk.LEFT)
-        self.__open_file_button_tooltip = Tooltip(self.__open_file_button, 'Open image')
+        self.__open_file_button_tooltip = Tooltip(self.__open_file_button, 'Open image or video')
         ctl.create_pad(self.__action_frame, tk.LEFT)
 
         self.__play_icon = tk.PhotoImage(file=os.path.abspath(os.path.join('resource', 'play-icon.png')))
@@ -240,7 +245,7 @@ class MainDialog(tk.Frame):
         Displaying a file open dialog in image selecting mode, to select an image for executing the algorithm on
         :return: None
         """
-        file_name = tkfiledialog.askopenfilename(filetypes=[("Image File", '.jpg')])
+        file_name = tkfiledialog.askopenfilename(filetypes=[("Image File", '.jpg .jpeg .png .bmp'), ("Video File", '.mp4 .avi .wmv')])
         self.__file_path_entry.delete(0, tk.END)
         self.__file_path_entry.insert(0, file_name)
 
@@ -263,19 +268,22 @@ class MainDialog(tk.Frame):
         """
         file_path = self.__file_path_entry.get().strip()
         if file_path == '':
-            messagebox.showerror('Illegal Input', 'Please select an image first')
+            messagebox.showerror('Illegal Input', 'Please select a file first')
             return None
 
         if not os.path.exists(file_path) or not os.path.isfile(file_path):
-            messagebox.showerror('Illegal Input', 'Selected image is not a file or it does not exist:\n{}'.format(file_path))
+            messagebox.showerror('Illegal Input', 'Selected file is not a file or it does not exist:\n{}'.format(file_path))
             return None
 
         if not self.__running:
-            self.start_progress()
+            if is_video(file_path):
+                self.play_selected_video(file_path)
+            else:
+                self.start_progress()
 
-            # Run it in background so the progress bar will not get blocked. (We cannot block te gui thread)
-            t = Thread(target=self.execute_harris_detector, args=(file_path,))
-            t.start()
+                # Run it in background so the progress bar will not get blocked. (We cannot block te gui thread)
+                t = Thread(target=self.execute_harris_detector, args=(file_path,))
+                t.start()
         else:
             print('Already running. Cannot run multiple detections in parallel.')
 
@@ -286,7 +294,7 @@ class MainDialog(tk.Frame):
         :param path: Path to the selected image
         :return: None
         """
-        self.__image, self.__processed_image = corners_and_line_intersection_detector(path,
+        self.__image, self.__processed_image = corners_and_line_intersection_detector(cv2.imread(path),
                                                                                       lambda text: self.update_status(text),
                                                                                       lambda progress: self.update_progress(progress),
                                                                                       bool(self.__canny_check_var.get()),
@@ -333,7 +341,7 @@ class MainDialog(tk.Frame):
             self.show_images(self.__image, self.__processed_image)
 
         if self.__running:
-            self.master.after(100, self.periodically_check_outcome)
+            self.master.after(50, self.periodically_check_outcome)
 
     def popup_image(self):
         """
@@ -356,3 +364,30 @@ class MainDialog(tk.Frame):
                 figure_manager.window.wm_geometry("+0+0")
 
             plt.show()
+
+    def play_selected_video(self, file_path):
+        """
+        This method will load a video from file and display it in cv2's window.
+        We will execute corners detection, using the application settings, over the frames of the selected video and draw them live.
+        :param file_path: Path to the video file to load
+        :return: None
+        """
+        cap = cv2.VideoCapture(file_path)
+        while cap.isOpened():
+            ret, frame = cap.read()
+
+            if frame is None:
+                break
+
+            image, processed_image = corners_and_line_intersection_detector(frame,
+                                                                            lambda text: self.update_status(text),
+                                                                            lambda progress: self.update_progress(progress),
+                                                                            bool(self.__canny_check_var.get()),
+                                                                            bool(self.__gauss_check_var.get()),
+                                                                            self.settings)
+            self.__progress_bar['value'] = 0
+
+            cv2.imshow('Corners Detector', processed_image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        cap.release()
