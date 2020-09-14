@@ -9,8 +9,6 @@ def log(consumer, *message):
     if consumer is not None:
         consumer(text)
 
-    print(text)
-
 
 def do_progress(consumer, current_progress, step):
     if consumer is not None:

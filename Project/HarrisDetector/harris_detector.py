@@ -57,6 +57,7 @@ def corners_and_line_intersection_detector(img, console_consumer=None, progress_
             log(console_consumer, 'Marking detected interest points...')
             if settings.corners_quality == HIGH_QUALITY:
                 helper_image = enhance_corners_accuracy(harris_scores, image, settings)
+                progress = do_progress(progress_consumer, progress, 10)
                 mark_corners(image, helper_image, settings, progress_consumer, progress)
             else:
                 # Faster marking, low quality
@@ -99,12 +100,12 @@ def mark_corners(image, harris_scores, settings, progress_consumer, progress):
     :return: None
     """
     corners_color = settings.corners_color[::-1]
-    progress_steps_left = 100 - progress
-    progress_step = progress_steps_left / harris_scores.shape[0]
     thickness = np.max([2, int(np.round((harris_scores.shape[0] + harris_scores.shape[1]) / 500))])
 
     # Instead of scanning the whole harris_scores matrix, which is terribly slow, get array of indices where we have marks only.
     indices_of_corners = np.column_stack(np.where(harris_scores == 255))
+    progress_steps_left = 100 - progress
+    progress_step = progress_steps_left / len(indices_of_corners)
     for curr_point in indices_of_corners:
         top = curr_point[0] - settings.dilate_size
         left = curr_point[1] - settings.dilate_size

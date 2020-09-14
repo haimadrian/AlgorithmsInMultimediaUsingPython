@@ -185,6 +185,7 @@ class MainDialog(tk.Frame):
         """
         self.__style.configure('text.Horizontal.TProgressbar', text=' ' + text)
         self.progress_text_format = ' ' + text + ' {0}%'
+        print(text)
 
     def update_progress(self, progress):
         """
@@ -385,12 +386,11 @@ class MainDialog(tk.Frame):
             if frame is None:
                 break
 
+            # Don't send listeners while playing a video in order to avoid of flooding the console
             image, processed_image = corners_and_line_intersection_detector(frame,
-                                                                            lambda text: self.update_status(text),
-                                                                            lambda progress: self.update_progress(progress),
-                                                                            bool(self.__canny_check_var.get()),
-                                                                            bool(self.__gauss_check_var.get()),
-                                                                            self.settings)
+                                                                            is_using_canny=bool(self.__canny_check_var.get()),
+                                                                            is_applying_gauss=bool(self.__gauss_check_var.get()),
+                                                                            settings=self.settings)
             self.__progress_bar['value'] = 0
 
             if processed_image is not None:
