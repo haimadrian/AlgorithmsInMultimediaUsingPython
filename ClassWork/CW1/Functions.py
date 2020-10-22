@@ -52,7 +52,7 @@ def myMean():
 
 def myStars(arr):
     for i in arr:
-        print(''.join('*' for j in range(i)))
+        print(('*' * i))
 
 
 def secondBest(arr):
@@ -73,10 +73,14 @@ def secondBest(arr):
         if i > maxx[0]:
             maxx[1] = maxx[0]
             maxx[0] = i
+		elif i > maxx[1]:
+            maxx[1] = i
 
         if i < minn[0]:
             minn[1] = minn[0]
             minn[0] = i
+		elif i < minn[1]:
+            minn[1] = i
 
     return [maxx[1], minn[1]]
 
@@ -103,5 +107,5 @@ def mySort(arr, low, high):
 
 
 def myChar2Num(arr):
-    return [(ord(i) - ord('a') + 1) for i in arr]
+    return [(ord(i.lower()) - ord('a') + 1) for i in arr]
 

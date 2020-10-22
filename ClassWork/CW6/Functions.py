@@ -25,7 +25,7 @@ def GreenSqr(image, center, width):
         image[center[0] - w: center[0] + w, center[1] - w: center[1] + w] = 255
     elif len(image.shape) == 3:
         w = 2 * width + 1
-        image[int(center[0] - w): int(center[0] + w), int(center[1] - w): int(center[1] + w)] = 0, 255, 0
+        image[int(center[0] - w): int(center[0] + w), int(center[1] - w): int(center[1] + w), 0:3:2] = 0
     else:
         print("GreenSqr: Unsupported shape. Was:", image.shape)
         return None

@@ -107,4 +107,39 @@ def ex12():
 # ex9()
 # ex10()
 # ex11()
-ex12()
+# ex12()
+
+def test():
+    a = [1, 2, 3, 4, 5]
+    b = [1, 2, 3, 4, 5]
+
+    a += [6, 7]
+    b = b + [6, 7]
+
+    print(a)
+    print(b)
+
+    vec = np.zeros(3)
+    mat = np.zeros((1, 3))
+    print(vec)
+    print(mat)
+
+    myMat = np.zeros((3, 3), int)
+    np.fill_diagonal(myMat, 1)
+    np.fill_diagonal(np.fliplr(myMat), 1)
+    print(myMat)
+
+
+def myPlusMatrix(n):
+    matt = np.zeros((2*n + 1, 2*n + 1), dtype=np.int8)
+    matt[n, :] = 1
+    matt[:, n] = 1
+    return matt
+
+
+mat = myPlusMatrix(1)
+print(mat)
+
+# for i in enum:
+#    print(i)
+#    print(i[0])

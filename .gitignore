@@ -132,3 +132,10 @@ dmypy.json
 *.zip
 *.rar
 *.txt
+/Exams/Data/
+/All_Sols/**/*.jpg
+/All_Sols/**/*.jpeg
+/All_Sols/**/*.png
+/All_Sols/**/*.pgm
+/All_Sols/**/*.wav
+/All_Sols/**/*.xlsx
