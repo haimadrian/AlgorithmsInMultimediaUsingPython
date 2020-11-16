@@ -35,11 +35,11 @@ def countMyChars2(string):
 def myListHist(lst):
     def flattenList(lst_inner):
         result = []
-        for i in lst_inner:
-            if (isinstance(i, int)) or (isinstance(i, float) and i.is_integer()):
-                result.append(int(i))
-            elif isinstance(i, list):
-                result.extend(flattenList(i))
+        for j in lst_inner:
+            if (isinstance(j, int)) or (isinstance(j, float) and j.is_integer()):
+                result.append(int(j))
+            elif isinstance(j, list):
+                result.extend(flattenList(j))
         return result
 
     flattenedList = flattenList(lst)

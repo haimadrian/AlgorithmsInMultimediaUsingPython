@@ -1,5 +1,7 @@
 __author__ = "Haim Adrian"
 
+from operator import itemgetter
+
 from matplotlib import pyplot as plt
 import numpy as np
 import cv2
@@ -57,29 +59,57 @@ def myMasking(myImage, myMask):
 
 
 # ex8
-img = cv2.imread('eagle.jpeg', 0)
+img = cv2.imread('img.jpg', 0)
+img2 = cv2.imread('img.jpg')
 # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 SharpenMask = np.array([[-1, -2, -1],
                         [-2, 13, -2],
                         [-1, -2, -1]], dtype=np.float64)
+Sharpen2Mask = np.array([[2, 2, 2],
+                         [2, 16, 2],
+                         [2, 2, 2]], dtype=np.float64)
 GausMask = (1.0 / 273) * np.array([[1, 4, 7, 4, 1],
                                    [4, 16, 26, 16, 4],
                                    [7, 26, 41, 26, 7],
                                    [4, 16, 26, 16, 4],
                                    [1, 4, 7, 4, 1]],
                                   dtype=np.float64)
-my_sol = mmyMaskKernel(img, SharpenMask)
-print(np.min(my_sol), np.max(my_sol))
-my_sol = np.uint8((my_sol - np.min(my_sol)) / np.max(my_sol) * 255)
-masked = myMaskKernel(img, SharpenMask)
-masked = np.uint8((masked - np.min(masked)) / np.max(masked) * 255)
-third = myMasking(img, SharpenMask)
-print(np.min(third), np.max(third))
-third = np.uint8((third - np.min(third)) / np.max(third) * 255)
-plt.subplot(131)
-plt.imshow(masked, CMAP='gray')
-plt.subplot(132)
-plt.imshow(my_sol, CMAP='gray')
-plt.subplot(133)
-plt.imshow(third, CMAP='gray')
-plt.show()
+
+
+def MostCommonColor(myImage):
+    if not isinstance(myImage, np.ndarray):
+        return None
+
+    if myImage.ndim == 2:
+        unique, counts = np.unique(myImage, return_counts=True)
+        return unique[np.argmax(counts)]
+    elif myImage.ndim == 3:
+        countsDic = {}
+
+        for row in range(myImage.shape[0]):
+            for col in range(myImage.shape[1]):
+                currColor = (myImage[row, col, 0], myImage[row, col, 1], myImage[row, col, 2])
+                countsDic[currColor] = countsDic.get(currColor, 0) + 1
+
+        return max(countsDic.items(), key=itemgetter(1))[0]
+    else:
+        return None
+
+
+print(MostCommonColor(img))
+print(MostCommonColor(img2))
+# my_sol = myMasking(img, Sharpen2Mask)
+# print(np.min(my_sol), np.max(my_sol))
+# my_sol = np.uint8((my_sol - np.min(my_sol)) / np.max(my_sol) * 255)
+# masked = myMaskKernel(img, SharpenMask)
+# masked = np.uint8((masked - np.min(masked)) / np.max(masked) * 255)
+# third = myMasking(img, SharpenMask)
+# print(np.min(third), np.max(third))
+# third = np.uint8((third - np.min(third)) / np.max(third) * 255)
+# plt.subplot(131)
+# plt.imshow(masked, CMAP='gray')
+# plt.subplot(132)
+# plt.imshow(my_sol, CMAP='gray')
+# plt.subplot(133)
+# plt.imshow(third, CMAP='gray')
+# plt.show()
